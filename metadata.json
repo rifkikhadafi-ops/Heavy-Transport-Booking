@@ -1,5 +1,5 @@
 {
   "name": "Heavy Transport Booking",
-  "description": "A comprehensive booking system for SCM Heavy Equipment including Crane, Foco Crane, and Primemover with WhatsApp integration simulation and Gemini-powered job description enhancement.",
+  "description": "A comprehensive booking system for SCM Heavy Equipment including Crane, Foco Crane, Primemover, and Picker with WhatsApp integration simulation and Gemini-powered job description enhancement.",
   "requestFramePermissions": []
 }

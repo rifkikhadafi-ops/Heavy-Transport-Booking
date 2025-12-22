@@ -3,7 +3,7 @@ export enum EquipmentType {
   CRANE = 'Crane',
   FOCO_CRANE = 'Foco Crane',
   PRIMEMOVER = 'Primemover',
-  PRIMEMOVER_PICKER = 'Primemover + Picker'
+  PICKER = 'Picker'
 }
 
 export enum JobStatus {

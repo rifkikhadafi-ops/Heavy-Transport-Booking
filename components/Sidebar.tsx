@@ -8,10 +8,10 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const navItems = [
-    { id: 'dashboard', icon: 'fa-chart-line', label: 'Home' },
-    { id: 'request', icon: 'fa-plus', label: 'New' },
-    { id: 'schedule', icon: 'fa-calendar-days', label: 'Schedule' },
-    { id: 'change-request', icon: 'fa-pen-to-square', label: 'Edit' },
+    { id: 'dashboard', icon: 'fa-solid fa-chart-line', label: 'Home' },
+    { id: 'request', icon: 'fa-solid fa-plus', label: 'New' },
+    { id: 'change-request', icon: 'fa-solid fa-pen-to-square', label: 'Change' },
+    { id: 'schedule', icon: 'fa-solid fa-calendar-days', label: 'Schedule' },
     { id: 'group-chat', icon: 'fa-brands fa-whatsapp', label: 'Group', color: 'bg-emerald-600' }
   ];
 
@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
                 : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <i className={`${item.icon.includes('fa-') ? item.icon : 'fa-solid ' + item.icon} w-6 text-center`}></i>
+              <i className={`${item.icon} w-6 text-center`}></i>
               <span className="ml-3 font-medium">{item.label}</span>
             </button>
           ))}
@@ -62,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             }`}
           >
             <div className={`text-lg mb-0.5 ${activeTab === item.id ? 'scale-110' : ''}`}>
-              <i className={`${item.icon.includes('fa-') ? item.icon : 'fa-solid ' + item.icon}`}></i>
+              <i className={item.icon}></i>
             </div>
             <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
           </button>
