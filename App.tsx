@@ -111,23 +111,23 @@ const App: React.FC = () => {
     <div className="flex min-h-screen bg-slate-50 font-sans">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <header className="mb-8 flex justify-between items-center">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-24 md:pb-8">
+        <header className="mb-6 md:mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Heavy Transport Booking</h1>
-            <p className="text-slate-500">Logistics Control Tower</p>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800">SCM Transport Control</h1>
+            <p className="text-slate-500 text-sm">Heavy Equipment Logistics Hub</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="hidden lg:flex items-center space-x-2 text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
-              <i className="fa-solid fa-database"></i>
-              <span>LocalStorage Sync Active</span>
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="flex items-center space-x-2 text-[10px] md:text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full border border-emerald-200">
+              <i className="fa-solid fa-check-circle"></i>
+              <span>Sync Live</span>
             </div>
-            <div className="flex items-center space-x-2 text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
+            <div className="flex items-center space-x-2 text-[10px] md:text-sm bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
               </span>
-              <span>WA Bot Active</span>
+              <span>Bot Ready</span>
             </div>
           </div>
         </header>

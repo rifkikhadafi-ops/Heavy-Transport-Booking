@@ -29,16 +29,16 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus }) => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {[JobStatus.REQUESTED, JobStatus.ON_PROGRESS, JobStatus.PENDING, JobStatus.CLOSE].map(status => {
           const count = bookings.filter(b => b.status === status).length;
           return (
-            <div key={status} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{status}</p>
-                <p className="text-2xl font-bold text-slate-800">{count}</p>
+            <div key={status} className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between">
+              <div className="mb-2 md:mb-0">
+                <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wider">{status}</p>
+                <p className="text-xl md:text-2xl font-bold text-slate-800">{count}</p>
               </div>
-              <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-lg ${getStatusColor(status)}`}>
+              <div className={`h-8 w-8 md:h-10 md:w-10 rounded-xl flex items-center justify-center text-sm md:text-lg ${getStatusColor(status)}`}>
                 {getStatusIcon(status)}
               </div>
             </div>
@@ -46,14 +46,15 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus }) => {
         })}
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="font-bold text-slate-800">Recent Transport Requests</h3>
-          <button className="text-sm font-semibold text-blue-600 hover:text-blue-700">Export Report</button>
+      <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-4 md:px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+          <h3 className="font-bold text-slate-800 text-sm md:text-base">Transport Requests</h3>
+          <button className="text-xs md:text-sm font-semibold text-blue-600 hover:text-blue-700">Export</button>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4 text-left">Request ID</th>
@@ -78,11 +79,11 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus }) => {
                   <td className="px-6 py-4">
                     <div className="flex flex-col text-sm">
                       <span className="text-slate-700 font-medium">{booking.date}</span>
-                      <span className="text-slate-400">{booking.startTime} - {booking.endTime}</span>
+                      <span className="text-slate-400 text-xs">{booking.startTime} - {booking.endTime}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center space-x-2 ${getStatusColor(booking.status)}`}>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold border inline-flex items-center space-x-2 ${getStatusColor(booking.status)}`}>
                       <span className="relative flex h-2 w-2">
                         <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${booking.status === JobStatus.ON_PROGRESS ? 'bg-amber-400' : 'hidden'}`}></span>
                         <span className={`relative inline-flex rounded-full h-2 w-2 ${
@@ -107,16 +108,57 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus }) => {
                   </td>
                 </tr>
               ))}
-              {bookings.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
-                    No active requests found. Create a new one to get started.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card List */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {bookings.map((booking) => (
+            <div key={booking.id} className="p-4 space-y-3">
+              <div className="flex justify-between items-start">
+                <span className="font-mono font-black text-slate-800 text-sm">{booking.id}</span>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${getStatusColor(booking.status)}`}>
+                  {booking.status}
+                </span>
+              </div>
+              
+              <div>
+                <h4 className="font-bold text-slate-900 leading-tight">{booking.unit}</h4>
+                <p className="text-xs text-slate-500 line-clamp-2 mt-1">{booking.details}</p>
+              </div>
+
+              <div className="flex items-center space-x-4 text-[11px] text-slate-500 font-medium">
+                <div className="flex items-center space-x-1">
+                  <i className="fa-solid fa-calendar text-slate-300"></i>
+                  <span>{booking.date}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <i className="fa-solid fa-clock text-slate-300"></i>
+                  <span>{booking.startTime}-{booking.endTime}</span>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <select 
+                  value={booking.status}
+                  onChange={(e) => updateStatus(booking.id, e.target.value as JobStatus)}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {Object.values(JobStatus).map(s => (
+                    <option key={s} value={s}>Change Status to {s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {bookings.length === 0 && (
+          <div className="px-6 py-12 text-center text-slate-400 italic text-sm">
+            No active requests found.
+          </div>
+        )}
       </div>
     </div>
   );

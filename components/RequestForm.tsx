@@ -30,23 +30,27 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="bg-slate-900 px-8 py-6 text-white">
-        <h2 className="text-xl font-bold">New Booking Form</h2>
-        <p className="text-slate-400 text-sm">Please provide complete information for the heavy equipment request.</p>
+    <div className="max-w-4xl mx-auto bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-slate-900 px-6 md:px-8 py-4 md:py-6 text-white text-center md:text-left">
+        <h2 className="text-lg md:text-xl font-bold uppercase tracking-tight">New Booking</h2>
+        <p className="text-slate-400 text-xs mt-1">Provide equipment request details.</p>
       </div>
       
-      <form onSubmit={handleSubmit} className="p-8 space-y-6">
+      <form onSubmit={handleSubmit} className="p-4 md:p-8 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Select Unit Type</label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unit Type</label>
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 md:gap-3">
               {Object.values(EquipmentType).map(type => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setUnit(type)}
-                  className={`p-3 text-sm rounded-xl border transition-all text-left flex items-center justify-between ${unit === type ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
+                  className={`p-3 text-xs md:text-sm rounded-xl border transition-all text-left flex items-center justify-between min-h-[48px] ${
+                    unit === type 
+                    ? 'border-blue-600 bg-blue-50 text-blue-700 font-black' 
+                    : 'border-slate-200 text-slate-600'
+                  }`}
                 >
                   {type}
                   {unit === type && <i className="fa-solid fa-circle-check"></i>}
@@ -55,33 +59,33 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Job Schedule</label>
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Job Schedule</label>
             <div className="space-y-3">
               <input 
                 type="date" 
                 required
-                className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full p-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <span className="text-xs text-slate-400">Start Time</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Start</span>
                   <input 
                     type="time" 
                     required
-                    className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                    className="w-full p-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs text-slate-400">End Time (Est)</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">End (Est)</span>
                   <input 
                     type="time" 
                     required
-                    className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                    className="w-full p-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
                   />
@@ -91,35 +95,35 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <label className="text-sm font-semibold text-slate-700">Work Details</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Work Details</label>
             <button 
               type="button"
               onClick={handleEnhance}
               disabled={isEnhancing || !details}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1 disabled:opacity-50"
+              className="text-[10px] md:text-xs font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-all disabled:opacity-50 flex items-center space-x-1"
             >
               <i className={`fa-solid ${isEnhancing ? 'fa-spinner fa-spin' : 'fa-wand-sparkles'}`}></i>
-              <span>{isEnhancing ? 'Enhancing...' : 'AI Enhance Detail'}</span>
+              <span>{isEnhancing ? 'UPDATING...' : 'AI ENHANCE'}</span>
             </button>
           </div>
           <textarea 
             required
             rows={4}
-            placeholder="Describe the technical work to be performed..."
-            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            placeholder="Technical details of the work..."
+            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm leading-relaxed"
             value={details}
             onChange={(e) => setDetails(e.target.value)}
           ></textarea>
         </div>
 
-        <div className="pt-4 flex justify-end">
+        <div className="pt-2">
           <button 
             type="submit"
-            className="px-10 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 flex items-center space-x-2"
+            className="w-full md:w-auto px-10 py-4 bg-blue-600 text-white font-black rounded-xl md:rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center space-x-2"
           >
-            <span>Submit Request</span>
+            <span>SUBMIT BOOKING</span>
             <i className="fa-solid fa-paper-plane"></i>
           </button>
         </div>

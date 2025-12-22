@@ -7,66 +7,68 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+  const navItems = [
+    { id: 'dashboard', icon: 'fa-chart-line', label: 'Home' },
+    { id: 'request', icon: 'fa-plus', label: 'New' },
+    { id: 'schedule', icon: 'fa-calendar-days', label: 'Schedule' },
+    { id: 'change-request', icon: 'fa-pen-to-square', label: 'Edit' },
+    { id: 'simulator', icon: 'fa-brands fa-whatsapp', label: 'WA Bot', color: 'bg-emerald-600' }
+  ];
+
   return (
-    <aside className="w-20 md:w-64 bg-slate-900 text-white flex flex-col items-center md:items-stretch py-8 shadow-xl">
-      <div className="px-6 mb-10 flex items-center space-x-3">
-        <div className="h-10 px-2 min-w-[40px] bg-blue-600 rounded-lg flex items-center justify-center text-sm font-black shadow-lg shadow-blue-500/50 uppercase tracking-tighter">
-          SCM
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 bg-slate-900 text-white flex-col py-8 shadow-xl">
+        <div className="px-6 mb-10 flex items-center space-x-3">
+          <div className="h-10 px-2 min-w-[40px] bg-blue-600 rounded-lg flex items-center justify-center text-sm font-black shadow-lg shadow-blue-500/50 uppercase tracking-tighter">
+            SCM
+          </div>
+          <span className="font-bold text-lg tracking-tight">SCM TRANSPORT</span>
         </div>
-        <span className="hidden md:block font-bold text-lg tracking-tight">SCM TRANSPORT</span>
-      </div>
 
-      <nav className="flex-1 px-3 space-y-2">
-        <button 
-          onClick={() => setActiveTab('dashboard')}
-          className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-        >
-          <i className="fa-solid fa-chart-line w-6 text-center"></i>
-          <span className="hidden md:block ml-3 font-medium">Dashboard</span>
-        </button>
+        <nav className="flex-1 px-3 space-y-2">
+          {navItems.map((item) => (
+            <button 
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`w-full flex items-center p-3 rounded-xl transition-all ${
+                activeTab === item.id 
+                ? (item.id === 'simulator' ? 'bg-emerald-600' : 'bg-blue-600') + ' text-white' 
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <i className={`${item.icon.includes('fa-') ? item.icon : 'fa-solid ' + item.icon} w-6 text-center`}></i>
+              <span className="ml-3 font-medium">{item.label}</span>
+            </button>
+          ))}
+        </nav>
 
-        <button 
-          onClick={() => setActiveTab('request')}
-          className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'request' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-        >
-          <i className="fa-solid fa-plus w-6 text-center"></i>
-          <span className="hidden md:block ml-3 font-medium">New Booking</span>
-        </button>
+        <div className="p-6">
+          <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
+            <p className="text-xs text-slate-500 mb-1">Signed in as</p>
+            <p className="text-sm font-semibold truncate">SCM Supervisor</p>
+          </div>
+        </div>
+      </aside>
 
-        <button 
-          onClick={() => setActiveTab('schedule')}
-          className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'schedule' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-        >
-          <i className="fa-solid fa-calendar-days w-6 text-center"></i>
-          <span className="hidden md:block ml-3 font-medium">Schedule</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('change-request')}
-          className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'change-request' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-        >
-          <i className="fa-solid fa-pen-to-square w-6 text-center"></i>
-          <span className="hidden md:block ml-3 font-medium">Change Request</span>
-        </button>
-
-        <div className="pt-4 mt-4 border-t border-slate-800">
-          <button 
-            onClick={() => setActiveTab('simulator')}
-            className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'simulator' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 flex justify-around items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveTab(item.id as any)}
+            className={`flex flex-col items-center justify-center min-w-[64px] py-1 rounded-xl transition-all ${
+              activeTab === item.id ? 'text-blue-600' : 'text-slate-400'
+            }`}
           >
-            <i className="fa-brands fa-whatsapp w-6 text-center"></i>
-            <span className="hidden md:block ml-3 font-medium">WA Simulator</span>
+            <div className={`text-lg mb-0.5 ${activeTab === item.id ? 'scale-110' : ''}`}>
+              <i className={`${item.icon.includes('fa-') ? item.icon : 'fa-solid ' + item.icon}`}></i>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
           </button>
-        </div>
+        ))}
       </nav>
-
-      <div className="p-6 hidden md:block">
-        <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
-          <p className="text-xs text-slate-500 mb-1">Signed in as</p>
-          <p className="text-sm font-semibold truncate">SCM Supervisor</p>
-        </div>
-      </div>
-    </aside>
+    </>
   );
 };
 
