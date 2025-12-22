@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { EquipmentType, JobStatus, BookingRequest, WhatsAppNotification } from './types';
 import Sidebar from './components/Sidebar';
 import RequestForm from './components/RequestForm';
+import ChangeRequestForm from './components/ChangeRequestForm';
 import Dashboard from './components/Dashboard';
+import ScheduleView from './components/ScheduleView';
 import WAWebHookSimulator from './components/WAWebHookSimulator';
 
 const INITIAL_DATA: BookingRequest[] = [
@@ -11,19 +13,29 @@ const INITIAL_DATA: BookingRequest[] = [
     id: 'REQ-001',
     unit: EquipmentType.CRANE,
     details: 'Lifting heavy generator set at Area A Zone 4.',
-    date: '2024-05-20',
+    date: new Date().toISOString().split('T')[0],
     startTime: '08:00',
     endTime: '12:00',
     status: JobStatus.REQUESTED,
     requestedAt: Date.now() - 3600000,
     waMessageId: 'WA-MSG-101'
+  },
+  {
+    id: 'REQ-002',
+    unit: EquipmentType.PRIMEMOVER,
+    details: 'Transporting drill pipe to Rig 12.',
+    date: new Date().toISOString().split('T')[0],
+    startTime: '13:00',
+    endTime: '17:30',
+    status: JobStatus.ON_PROGRESS,
+    requestedAt: Date.now() - 7200000,
+    waMessageId: 'WA-MSG-102'
   }
 ];
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'request' | 'simulator'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'request' | 'change-request' | 'schedule' | 'simulator'>('dashboard');
   
-  // Persistence logic
   const [bookings, setBookings] = useState<BookingRequest[]>(() => {
     const saved = localStorage.getItem('scm_bookings');
     return saved ? JSON.parse(saved) : INITIAL_DATA;
@@ -42,30 +54,41 @@ const App: React.FC = () => {
     localStorage.setItem('scm_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
+  const sendWANotification = (request: BookingRequest, isUpdate: boolean = false) => {
+    const waMessageId = `WA-MSG-${Math.floor(10000 + Math.random() * 90000)}`;
+    const header = isUpdate ? '*UPDATED BOOKING REQUEST*' : '*NEW BOOKING REQUEST*';
+    const waContent = `${header}\nID: ${request.id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\nDate: ${request.date}\n\nMention this message and type /CLOSE when finished.`;
+    
+    setNotifications(prev => [{
+      id: waMessageId,
+      requestId: request.id,
+      content: waContent,
+      timestamp: Date.now()
+    }, ...prev]);
+
+    return waMessageId;
+  };
+
   const handleNewRequest = (newRequest: Omit<BookingRequest, 'id' | 'status' | 'requestedAt' | 'waMessageId'>) => {
     const id = `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
-    const waMessageId = `WA-MSG-${Math.floor(10000 + Math.random() * 90000)}`;
     
     const request: BookingRequest = {
       ...newRequest,
       id,
       status: JobStatus.REQUESTED,
       requestedAt: Date.now(),
-      waMessageId
     };
 
-    setBookings(prev => [request, ...prev]);
-    
-    // Simulate WA Notification
-    const waContent = `*NEW BOOKING REQUEST*\nID: ${id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\nDate: ${request.date}\n\nMention this message and type /CLOSE when finished.`;
-    
-    setNotifications(prev => [{
-      id: waMessageId,
-      requestId: id,
-      content: waContent,
-      timestamp: Date.now()
-    }, ...prev]);
+    const waId = sendWANotification(request);
+    request.waMessageId = waId;
 
+    setBookings(prev => [request, ...prev]);
+    setActiveTab('dashboard');
+  };
+
+  const handleUpdateBooking = (updatedData: BookingRequest) => {
+    setBookings(prev => prev.map(b => b.id === updatedData.id ? updatedData : b));
+    sendWANotification(updatedData, true);
     setActiveTab('dashboard');
   };
 
@@ -115,6 +138,14 @@ const App: React.FC = () => {
         
         {activeTab === 'request' && (
           <RequestForm onSubmit={handleNewRequest} />
+        )}
+
+        {activeTab === 'change-request' && (
+          <ChangeRequestForm bookings={bookings} onUpdate={handleUpdateBooking} />
+        )}
+
+        {activeTab === 'schedule' && (
+          <ScheduleView bookings={bookings} />
         )}
 
         {activeTab === 'simulator' && (

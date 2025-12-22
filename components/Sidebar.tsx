@@ -2,8 +2,8 @@
 import React from 'react';
 
 interface SidebarProps {
-  activeTab: 'dashboard' | 'request' | 'simulator';
-  setActiveTab: (tab: 'dashboard' | 'request' | 'simulator') => void;
+  activeTab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'simulator';
+  setActiveTab: (tab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'simulator') => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
@@ -34,12 +34,30 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         </button>
 
         <button 
-          onClick={() => setActiveTab('simulator')}
-          className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'simulator' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+          onClick={() => setActiveTab('schedule')}
+          className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'schedule' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
         >
-          <i className="fa-brands fa-whatsapp w-6 text-center"></i>
-          <span className="hidden md:block ml-3 font-medium">WA Simulator</span>
+          <i className="fa-solid fa-calendar-days w-6 text-center"></i>
+          <span className="hidden md:block ml-3 font-medium">Schedule</span>
         </button>
+
+        <button 
+          onClick={() => setActiveTab('change-request')}
+          className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'change-request' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+        >
+          <i className="fa-solid fa-pen-to-square w-6 text-center"></i>
+          <span className="hidden md:block ml-3 font-medium">Change Request</span>
+        </button>
+
+        <div className="pt-4 mt-4 border-t border-slate-800">
+          <button 
+            onClick={() => setActiveTab('simulator')}
+            className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === 'simulator' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+          >
+            <i className="fa-brands fa-whatsapp w-6 text-center"></i>
+            <span className="hidden md:block ml-3 font-medium">WA Simulator</span>
+          </button>
+        </div>
       </nav>
 
       <div className="p-6 hidden md:block">
