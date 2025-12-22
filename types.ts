@@ -22,12 +22,14 @@ export interface BookingRequest {
   endTime: string;
   status: JobStatus;
   requestedAt: number;
-  waMessageId?: string; // Simulated WhatsApp ID
+  waMessageId?: string;
 }
 
 export interface WhatsAppNotification {
   id: string;
   requestId: string;
+  sender: string;
   content: string;
   timestamp: number;
+  isSystem: boolean;
 }

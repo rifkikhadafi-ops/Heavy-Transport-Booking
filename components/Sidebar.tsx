@@ -2,8 +2,8 @@
 import React from 'react';
 
 interface SidebarProps {
-  activeTab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'simulator';
-  setActiveTab: (tab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'simulator') => void;
+  activeTab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat';
+  setActiveTab: (tab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat') => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
@@ -12,7 +12,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'request', icon: 'fa-plus', label: 'New' },
     { id: 'schedule', icon: 'fa-calendar-days', label: 'Schedule' },
     { id: 'change-request', icon: 'fa-pen-to-square', label: 'Edit' },
-    { id: 'simulator', icon: 'fa-brands fa-whatsapp', label: 'WA Bot', color: 'bg-emerald-600' }
+    { id: 'group-chat', icon: 'fa-brands fa-whatsapp', label: 'Group', color: 'bg-emerald-600' }
   ];
 
   return (
@@ -33,7 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
               onClick={() => setActiveTab(item.id as any)}
               className={`w-full flex items-center p-3 rounded-xl transition-all ${
                 activeTab === item.id 
-                ? (item.id === 'simulator' ? 'bg-emerald-600' : 'bg-blue-600') + ' text-white' 
+                ? (item.id === 'group-chat' ? 'bg-emerald-600' : 'bg-blue-600') + ' text-white' 
                 : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
@@ -45,8 +45,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
 
         <div className="p-6">
           <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
-            <p className="text-xs text-slate-500 mb-1">Signed in as</p>
-            <p className="text-sm font-semibold truncate">SCM Supervisor</p>
+            <p className="text-xs text-slate-500 mb-1">Registered System</p>
+            <p className="text-sm font-semibold truncate">+622220454042</p>
           </div>
         </div>
       </aside>
@@ -58,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             key={item.id}
             onClick={() => setActiveTab(item.id as any)}
             className={`flex flex-col items-center justify-center min-w-[64px] py-1 rounded-xl transition-all ${
-              activeTab === item.id ? 'text-blue-600' : 'text-slate-400'
+              activeTab === item.id ? (item.id === 'group-chat' ? 'text-emerald-600' : 'text-blue-600') : 'text-slate-400'
             }`}
           >
             <div className={`text-lg mb-0.5 ${activeTab === item.id ? 'scale-110' : ''}`}>
