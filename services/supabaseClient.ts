@@ -1,12 +1,16 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-declare var process: {
-  env: {
-    SUPABASE_URL?: string;
-    SUPABASE_ANON_KEY?: string;
-    [key: string]: string | undefined;
+const getEnvVar = (key: string): string => {
+  try {
+    // Safely check for process.env
+    if (typeof process !== 'undefined' && process.env && process.env[key]) {
+      return process.env[key] as string;
+    }
+  } catch (e) {
+    // Fail silently in environments where process is not defined
   }
+  return '';
 };
 
 const getKeys = () => {
@@ -14,8 +18,8 @@ const getKeys = () => {
   const storedKey = localStorage.getItem('SCM_SUPABASE_KEY');
   
   return {
-    url: (typeof process !== 'undefined' && process.env.SUPABASE_URL) || storedUrl || '',
-    key: (typeof process !== 'undefined' && process.env.SUPABASE_ANON_KEY) || storedKey || ''
+    url: getEnvVar('SUPABASE_URL') || storedUrl || '',
+    key: getEnvVar('SUPABASE_ANON_KEY') || storedKey || ''
   };
 };
 
