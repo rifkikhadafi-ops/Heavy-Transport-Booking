@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { BookingRequest, JobStatus } from '../types';
+import * as XLSX from 'xlsx';
 
 interface DashboardProps {
   bookings: BookingRequest[];
@@ -29,9 +30,50 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBoo
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm(`Are you sure you want to delete request ${id}? This action cannot be undone.`)) {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus permintaan ${id}? Tindakan ini tidak dapat dibatalkan.`)) {
       deleteBooking(id);
     }
+  };
+
+  const handleExport = () => {
+    if (bookings.length === 0) {
+      alert("Tidak ada data untuk di-export.");
+      return;
+    }
+
+    // Format data for Excel
+    const dataToExport = bookings.map(b => ({
+      'ID Pesanan': b.id,
+      'Unit': b.unit,
+      'Detail Pekerjaan': b.details,
+      'Tanggal': b.date,
+      'Jam Mulai': b.startTime,
+      'Jam Selesai': b.endTime,
+      'Status': b.status,
+      'Waktu Request': new Date(b.requestedAt).toLocaleString('id-ID')
+    }));
+
+    // Create workbook and worksheet
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bookings");
+
+    // Adjust column widths
+    const maxWidths = [
+      { wch: 15 }, // ID
+      { wch: 15 }, // Unit
+      { wch: 40 }, // Detail
+      { wch: 12 }, // Tanggal
+      { wch: 10 }, // Jam Mulai
+      { wch: 10 }, // Jam Selesai
+      { wch: 15 }, // Status
+      { wch: 20 }, // Waktu Request
+    ];
+    worksheet['!cols'] = maxWidths;
+
+    // Generate and download file
+    const fileName = `SCM_Transport_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
   };
 
   const canDelete = (status: JobStatus) => status !== JobStatus.CLOSE;
@@ -57,8 +99,14 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBoo
 
       <div className="bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-4 md:px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="font-bold text-slate-800 text-sm md:text-base">Transport Requests</h3>
-          <button className="text-xs md:text-sm font-semibold text-blue-600 hover:text-blue-700">Export</button>
+          <h3 className="font-bold text-slate-800 text-sm md:text-base">Daftar Permintaan Transport</h3>
+          <button 
+            onClick={handleExport}
+            className="flex items-center space-x-2 text-xs md:text-sm font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg transition-colors border border-emerald-100"
+          >
+            <i className="fa-solid fa-file-excel"></i>
+            <span>Export Excel</span>
+          </button>
         </div>
         
         {/* Desktop Table */}
@@ -67,10 +115,10 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBoo
             <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-4 text-left">Request ID</th>
-                <th className="px-6 py-4 text-left">Unit Type</th>
-                <th className="px-6 py-4 text-left">Schedule</th>
+                <th className="px-6 py-4 text-left">Jenis Unit</th>
+                <th className="px-6 py-4 text-left">Jadwal</th>
                 <th className="px-6 py-4 text-left">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -88,7 +136,7 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBoo
                   <td className="px-6 py-4">
                     <div className="flex flex-col text-sm">
                       <span className="text-slate-700 font-medium">{booking.date}</span>
-                      <span className="text-slate-400 text-xs">{booking.startTime} - {booking.endTime}</span>
+                      <span className="text-slate-400 text-xs font-mono">{booking.startTime} - {booking.endTime}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -119,7 +167,7 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBoo
                         <button 
                           onClick={() => handleDelete(booking.id)}
                           className="h-8 w-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors flex items-center justify-center border border-rose-100"
-                          title="Delete Request"
+                          title="Hapus Pesanan"
                         >
                           <i className="fa-solid fa-trash-can text-xs"></i>
                         </button>
@@ -155,7 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBoo
                 </div>
                 <div className="flex items-center space-x-1">
                   <i className="fa-solid fa-clock text-slate-300"></i>
-                  <span>{booking.startTime}-{booking.endTime}</span>
+                  <span className="font-mono">{booking.startTime}-{booking.endTime}</span>
                 </div>
               </div>
 
@@ -166,7 +214,7 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBoo
                   className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {Object.values(JobStatus).map(s => (
-                    <option key={s} value={s}>Change Status to {s}</option>
+                    <option key={s} value={s}>Ubah Status ke {s}</option>
                   ))}
                 </select>
                 {canDelete(booking.status) && (
@@ -175,7 +223,7 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBoo
                     className="w-full py-2.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-200 flex items-center justify-center space-x-2 active:bg-rose-100"
                   >
                     <i className="fa-solid fa-trash-can"></i>
-                    <span>Delete Request</span>
+                    <span>Hapus Pesanan</span>
                   </button>
                 )}
               </div>
@@ -185,7 +233,7 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBoo
 
         {bookings.length === 0 && (
           <div className="px-6 py-12 text-center text-slate-400 italic text-sm">
-            No active requests found.
+            Tidak ada permintaan aktif.
           </div>
         )}
       </div>
