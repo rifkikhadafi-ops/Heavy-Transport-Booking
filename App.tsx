@@ -9,40 +9,6 @@ import Dashboard from './components/Dashboard';
 import ScheduleView from './components/ScheduleView';
 import LogisticsGroupChat from './components/LogisticsGroupChat';
 
-/* 
-  PENTING: JALANKAN SQL INI DI SUPABASE SQL EDITOR UNTUK FIX ERROR COLUMN:
-  
-  DROP TABLE IF EXISTS notifications;
-  DROP TABLE IF EXISTS bookings;
-
-  CREATE TABLE bookings (
-    "id" TEXT PRIMARY KEY,
-    "unit" TEXT NOT NULL,
-    "details" TEXT,
-    "date" TEXT,
-    "startTime" TEXT,
-    "endTime" TEXT,
-    "status" TEXT,
-    "requestedAt" BIGINT,
-    "waMessageId" TEXT
-  );
-
-  CREATE TABLE notifications (
-    "id" TEXT PRIMARY KEY,
-    "requestId" TEXT,
-    "sender" TEXT,
-    "content" TEXT,
-    "timestamp" BIGINT,
-    "isSystem" BOOLEAN
-  );
-
-  ALTER TABLE bookings DISABLE ROW LEVEL SECURITY;
-  ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
-  
-  -- AKTIFKAN REALTIME:
-  -- Pergi ke Database -> Replication -> Click '0 tables' pada supabase_realtime -> Centang bookings & notifications.
-*/
-
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat' | 'settings'>('dashboard');
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
@@ -57,28 +23,33 @@ const App: React.FC = () => {
   const [isTesting, setIsTesting] = useState(false);
 
   const fetchData = async () => {
+    if (!isConfigured) return;
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      // Menggunakan quote manual pada order jika perlu, tapi Supabase client biasanya menangani camelCase jika tabel dibuat dengan quote
+      // Mengambil data bookings
       const { data: bData, error: bError } = await supabase
         .from('bookings')
         .select('*')
         .order('requestedAt', { ascending: false });
       
+      if (bError) throw bError;
+
+      // Mengambil data notifications
       const { data: nData, error: nError } = await supabase
         .from('notifications')
         .select('*')
         .order('timestamp', { ascending: false });
 
-      if (bError) throw bError;
       if (nError) throw nError;
 
       if (bData) setBookings(bData);
       if (nData) setNotifications(nData);
+      setConnectionStatus('connected');
     } catch (err: any) {
       console.error("Fetch Error:", err);
-      setErrorMessage(`Gagal mengambil data: ${err.message}. Pastikan semua kolom (requestedAt, endTime, dll) sudah ada di tabel Supabase.`);
+      setConnectionStatus('error');
+      setErrorMessage(`Error Database: ${err.message}. Pastikan SQL Script sudah dijalankan dengan benar di Supabase SQL Editor.`);
     } finally {
       setIsLoading(false);
     }
@@ -94,47 +65,36 @@ const App: React.FC = () => {
     const initConnection = async () => {
       setConnectionStatus('checking');
       const test = await testConnection();
-      
       if (test.success) {
-        setConnectionStatus('connected');
         fetchData();
       } else {
         setConnectionStatus('error');
         setErrorMessage(test.message);
+        setIsLoading(false);
       }
     };
 
     initConnection();
 
+    // Setup Realtime Subscriptions
     const bookingsSub = supabase
-      .channel('bookings-all')
-      .on('postgres_changes', { event: '*', table: 'bookings' }, (payload: any) => {
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: '*', table: 'bookings' }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setBookings(prev => {
-            const exists = prev.some(b => b.id === payload.new.id);
-            return exists ? prev : [payload.new as BookingRequest, ...prev];
-          });
+          setBookings(prev => [payload.new as BookingRequest, ...prev]);
         } else if (payload.eventType === 'UPDATE') {
           setBookings(prev => prev.map(b => b.id === payload.new.id ? payload.new as BookingRequest : b));
         } else if (payload.eventType === 'DELETE') {
           setBookings(prev => prev.filter(b => b.id !== payload.old.id));
         }
       })
-      .subscribe();
-
-    const notificationsSub = supabase
-      .channel('notifications-all')
-      .on('postgres_changes', { event: 'INSERT', table: 'notifications' }, (payload: any) => {
-        setNotifications(prev => {
-          const exists = prev.some(n => n.id === payload.new.id);
-          return exists ? prev : [payload.new as WhatsAppNotification, ...prev];
-        });
+      .on('postgres_changes', { event: 'INSERT', table: 'notifications' }, (payload) => {
+        setNotifications(prev => [payload.new as WhatsAppNotification, ...prev]);
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(bookingsSub);
-      supabase.removeChannel(notificationsSub);
     };
   }, [isConfigured]);
 
@@ -153,29 +113,6 @@ const App: React.FC = () => {
     }
   };
 
-  const sendWANotification = async (request: BookingRequest, isUpdate: boolean = false) => {
-    try {
-      const waMessageId = `WA-MSG-${Math.floor(10000 + Math.random() * 90000)}`;
-      const header = isUpdate ? '*[UPDATED]*' : '*[NEW BOOKING]*';
-      const waContent = `${header}\nID: ${request.id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\nDate: ${request.date}\n\nKetik /CLOSE [ID], /PENDING [ID], atau /CANCEL [ID].`;
-      
-      const { error } = await supabase.from('notifications').insert({
-        id: waMessageId, 
-        requestId: request.id, 
-        sender: '+622220454042',
-        content: waContent, 
-        timestamp: Date.now(), 
-        isSystem: true
-      });
-      
-      if (error) throw error;
-      return waMessageId;
-    } catch (err: any) {
-      console.error("WA Notification Error:", err);
-      return undefined;
-    }
-  };
-
   const handleNewRequest = async (newRequest: Omit<BookingRequest, 'id' | 'status' | 'requestedAt' | 'waMessageId'>) => {
     setErrorMessage(null);
     try {
@@ -187,17 +124,26 @@ const App: React.FC = () => {
         requestedAt: Date.now() 
       };
       
-      const waId = await sendWANotification(request);
-      if (waId) request.waMessageId = waId;
+      // Simpan Booking
+      const { error: bError } = await supabase.from('bookings').insert(request);
+      if (bError) throw bError;
+
+      // Buat Notifikasi WA
+      const waMessageId = `WA-MSG-${Math.floor(10000 + Math.random() * 90000)}`;
+      const waContent = `*[NEW BOOKING]*\nID: ${id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\nDate: ${request.date}\n\nKetik /CLOSE [ID] untuk menutup pekerjaan.`;
       
-      const { error } = await supabase.from('bookings').insert(request);
-      if (error) throw error;
+      const { error: nError } = await supabase.from('notifications').insert({
+        id: waMessageId, requestId: id, sender: '+622220454042',
+        content: waContent, timestamp: Date.now(), isSystem: true
+      });
       
+      if (nError) console.error("Gagal simpan notifikasi:", nError);
+
       setActiveTab('dashboard');
       fetchData();
     } catch (err: any) {
       console.error("Insert Error:", err);
-      setErrorMessage(`Gagal menyimpan booking: ${err.message}. Pastikan kolom 'endTime' dan 'requestedAt' ada di database.`);
+      setErrorMessage(`Gagal menyimpan booking: ${err.message}. Pastikan kolom 'requestedAt' dan 'endTime' sudah ada.`);
     }
   };
 
@@ -207,7 +153,6 @@ const App: React.FC = () => {
       const { error } = await supabase.from('bookings').update(updatedData).eq('id', updatedData.id);
       if (error) throw error;
       
-      await sendWANotification(updatedData, true);
       setActiveTab('dashboard');
       fetchData();
     } catch (err: any) {
@@ -242,30 +187,14 @@ const App: React.FC = () => {
       const id = parts[1];
 
       if (['/CLOSE', '/PENDING', '/CANCEL'].includes(cmd) && id) {
-        const targetBooking = bookings.find(b => b.id === id);
-        if (targetBooking) {
-          if (cmd === '/CLOSE') await updateStatus(id, JobStatus.CLOSE);
-          if (cmd === '/PENDING') await updateStatus(id, JobStatus.PENDING);
-          if (cmd === '/CANCEL') await supabase.from('bookings').delete().eq('id', id);
-          
-          await supabase.from('notifications').insert({ 
-            id: `SYS-${Date.now()}`, 
-            requestId: id, 
-            sender: '+622220454042', 
-            content: `✅ Perintah ${cmd} untuk ${id} diproses.`, 
-            timestamp: Date.now(), 
-            isSystem: true 
-          });
-        } else {
-          await supabase.from('notifications').insert({ 
-            id: `SYS-${Date.now()}`, 
-            requestId: 'ERROR', 
-            sender: '+622220454042', 
-            content: `❌ ID "${id}" tidak ditemukan.`, 
-            timestamp: Date.now(), 
-            isSystem: true 
-          });
-        }
+        if (cmd === '/CLOSE') await updateStatus(id, JobStatus.CLOSE);
+        if (cmd === '/PENDING') await updateStatus(id, JobStatus.PENDING);
+        if (cmd === '/CANCEL') await supabase.from('bookings').delete().eq('id', id);
+        
+        await supabase.from('notifications').insert({ 
+          id: `SYS-${Date.now()}`, requestId: id, sender: '+622220454042', 
+          content: `✅ Perintah ${cmd} untuk ${id} diproses.`, timestamp: Date.now(), isSystem: true 
+        });
       }
     } catch (err: any) {
       console.error("Chat Error:", err);
@@ -340,8 +269,7 @@ const App: React.FC = () => {
             )}
           </form>
           <div className="px-8 pb-8 text-[10px] text-slate-400 text-center leading-relaxed">
-            Anda bisa menemukan kunci ini di: <br/>
-            <strong>Settings &gt; API</strong> di Dashboard Supabase.
+            Tips: Pastikan Anda sudah menjalankan SQL Script di Dashboard Supabase sebelum menyimpan.
           </div>
         </div>
       </div>
@@ -372,7 +300,7 @@ const App: React.FC = () => {
               }`}></i>
               <span>{
                 connectionStatus === 'connected' ? 'Live DB Online' : 
-                connectionStatus === 'error' ? 'Connection Error' : 'Testing Link...'
+                connectionStatus === 'error' ? 'Connection Error' : 'Checking...'
               }</span>
             </div>
           </div>
@@ -394,7 +322,7 @@ const App: React.FC = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
             <i className="fa-solid fa-spinner fa-spin text-3xl mb-4"></i>
-            <p className="font-bold text-sm uppercase tracking-widest">Loading Data...</p>
+            <p className="font-bold text-sm uppercase tracking-widest">Memuat Data...</p>
           </div>
         ) : (
           <>

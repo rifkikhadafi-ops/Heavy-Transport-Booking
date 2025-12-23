@@ -10,6 +10,7 @@ const getEnvVar = (key: string): string => {
   return '';
 };
 
+// URL default hanya sebagai backup jika localstorage kosong
 const DEFAULT_URL = 'https://obneuekaiwifgfzvfzcx.supabase.co';
 const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ibmV1ZWthaXdpZmdmenZmemN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MjgzODQsImV4cCI6MjA4MjAwNDM4NH0.UGZHaffga7hYzChPFc9lwhvF7_eMO44L9oOSNAb89jM';
 
@@ -43,17 +44,21 @@ export const testConnection = async (customUrl?: string, customKey?: string) => 
       ? createClient(customUrl, customKey) 
       : supabase;
       
-    const { error, data } = await client.from('bookings').select('id, requestedAt, endTime').limit(1);
+    // Mencoba melakukan select untuk memvalidasi kolom sensitif huruf
+    const { error } = await client.from('bookings').select('id, requestedAt, endTime').limit(1);
     
     if (error) {
-      if (error.code === 'PGRST116' || error.message.includes('not found')) {
-        return { success: false, message: 'Tabel "bookings" tidak ditemukan atau struktur kolom salah. Pastikan SQL sudah dijalankan di Dashboard Supabase.' };
+      if (error.message.includes('column') || error.message.includes('not found')) {
+        return { 
+          success: false, 
+          message: `Struktur Database Salah: Kolom "${error.message.split('"')[1] || 'unknown'}" tidak ditemukan. Pastikan Anda menyalin SQL Script dengan TANDA KUTIP (") di Supabase SQL Editor.` 
+        };
       }
-      return { success: false, message: `Error Database: ${error.message}` };
+      return { success: false, message: `Gagal Akses: ${error.message}` };
     }
     
     return { success: true, message: 'Koneksi Berhasil!' };
   } catch (err: any) {
-    return { success: false, message: `Gagal terhubung: ${err.message}` };
+    return { success: false, message: `Koneksi Error: ${err.message}` };
   }
 };
