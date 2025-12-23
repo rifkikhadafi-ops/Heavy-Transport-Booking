@@ -18,17 +18,10 @@ const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'checking'>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Fonnte State - Diinisialisasi dengan data yang Anda berikan
+  // Fonnte State
   const [showFonnteSettings, setShowFonnteSettings] = useState(false);
-  const [fonnteToken, setFonnteToken] = useState(localStorage.getItem('FONNTE_TOKEN') || 'WCXf6UKrcPCSWnMwqokoX2nXDA');
-  const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || 'DWtI8Gsw7zv1uvWuxdrpTw');
-
-  // Simpan otomatis ke localstorage jika belum ada
-  useEffect(() => {
-    if (!localStorage.getItem('FONNTE_TOKEN')) {
-      saveFonnteConfig('WCXf6UKrcPCSWnMwqokoX2nXDA', 'DWtI8Gsw7zv1uvWuxdrpTw');
-    }
-  }, []);
+  const [fonnteToken, setFonnteToken] = useState(localStorage.getItem('FONNTE_TOKEN') || '');
+  const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || '');
 
   const fetchData = useCallback(async () => {
     try {
@@ -85,7 +78,8 @@ const App: React.FC = () => {
           setBookings(prev => prev.map(b => b.id === updatedBooking.id ? updatedBooking : b));
         } 
         else if (payload.eventType === 'DELETE') {
-          setBookings(prev => prev.filter(b => b.id !== payload.old.id));
+          const deletedId = payload.old.id;
+          setBookings(prev => prev.filter(b => b.id !== deletedId));
         }
       })
       .on('postgres_changes', { event: '*', table: 'notifications' }, (payload) => {
@@ -136,11 +130,13 @@ const App: React.FC = () => {
       const { error: bError } = await supabase.from('bookings').insert(request);
       if (bError) throw bError;
 
-      // Format pesan WhatsApp yang lebih profesional
-      const waContent = `🚛 *PEMESANAN BARU*\n\n*ID:* ${id}\n*Unit:* ${request.unit}\n*Pekerjaan:* ${request.details}\n*Waktu:* ${request.startTime} - ${request.endTime}\n*Tanggal:* ${request.date}\n\n_Ketik */CLOSE ${id}* di grup ini untuk menutup pekerjaan._`;
+      // --- INTEGRASI FONNTE (OUTBOUND) ---
+      const waContent = `*[NEW BOOKING]*\nID: ${id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\n\nKetik /CLOSE ${id} untuk menutup.`;
       
+      // Kirim via Fonnte
       const fonnteRes = await sendWhatsAppMessage(waContent);
       
+      // Simpan notifikasi ke DB (untuk UI Group Chat)
       const newNotif = {
         id: `WA-${Date.now()}`, requestId: id, sender: '+6282220454042',
         content: waContent + (fonnteRes.success ? "" : "\n\n(⚠️ Gagal kirim WA: " + fonnteRes.message + ")"),
@@ -148,6 +144,7 @@ const App: React.FC = () => {
       };
 
       await supabase.from('notifications').insert(newNotif);
+      
       setActiveTab('dashboard');
     } catch (err: any) {
       setErrorMessage(`Gagal menyimpan: ${err.message}`);
@@ -159,7 +156,7 @@ const App: React.FC = () => {
       const { error } = await supabase.from('bookings').update(updatedData).eq('id', updatedData.id);
       if (error) throw error;
       
-      const updateMsg = `🔄 *UPDATE BOOKING*\n\n*ID:* ${updatedData.id}\n*Status:* ${updatedData.status}\n*Unit:* ${updatedData.unit}\n*Jadwal:* ${updatedData.date} (${updatedData.startTime}-${updatedData.endTime})`;
+      const updateMsg = `*[UPDATE BOOKING]*\nID: ${updatedData.id}\nStatus: ${updatedData.status}\nUnit: ${updatedData.unit}\nJadwal: ${updatedData.date} (${updatedData.startTime}-${updatedData.endTime})`;
       await sendWhatsAppMessage(updateMsg);
 
       setActiveTab('dashboard');
@@ -172,7 +169,7 @@ const App: React.FC = () => {
     try {
       const { error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id);
       if (error) throw error;
-      await sendWhatsAppMessage(`✅ *STATUS UPDATE*\n\nID *${id}* kini berstatus: *${newStatus.toUpperCase()}*`);
+      await sendWhatsAppMessage(`*[STATUS UPDATE]*\nID: ${id} kini berstatus: *${newStatus}*`);
     } catch (err: any) {
       setErrorMessage(`Gagal update status: ${err.message}`);
     }
@@ -182,7 +179,7 @@ const App: React.FC = () => {
     try {
       await supabase.from('bookings').delete().eq('id', id);
       await supabase.from('notifications').delete().eq('requestId', id);
-      await sendWhatsAppMessage(`🗑️ *CANCELLED*\n\nBooking ID *${id}* telah dihapus dari sistem oleh operator.`);
+      await sendWhatsAppMessage(`*[CANCELLED]*\nBooking ID ${id} telah dihapus dari sistem.`);
     } catch (err: any) {
       setErrorMessage(`Gagal menghapus: ${err.message}`);
     }
@@ -196,6 +193,7 @@ const App: React.FC = () => {
       };
       await supabase.from('notifications').insert(userNotif);
 
+      // Simulasi lokal perintah, di dunia nyata ini ditangani oleh Webhook Fonnte -> Supabase
       const commandText = text.toUpperCase();
       const parts = commandText.split(' ');
       if (parts[0] === '/CLOSE' && parts[1]) {
@@ -209,48 +207,64 @@ const App: React.FC = () => {
   const saveFonnte = () => {
     saveFonnteConfig(fonnteToken, fonnteTarget);
     setShowFonnteSettings(false);
+    alert("Konfigurasi Fonnte disimpan!");
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
+    <div className="flex min-h-screen bg-slate-50 font-sans">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
+      {/* Tombol Settings Floating */}
       <button 
         onClick={() => setShowFonnteSettings(true)}
         className="fixed top-4 right-4 z-50 h-10 w-10 bg-white shadow-lg rounded-full flex items-center justify-center text-slate-600 hover:text-emerald-600 border border-slate-200"
+        title="Fonnte Settings"
       >
         <i className="fa-solid fa-gears"></i>
       </button>
 
+      {/* Modal Fonnte Settings */}
       {showFonnteSettings && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-8 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 md:p-8">
             <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-              <i className="fa-brands fa-whatsapp text-emerald-500 text-2xl"></i>
+              <i className="fa-brands fa-whatsapp text-emerald-500"></i>
               <span>FONNTE CONFIG</span>
             </h2>
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">API Token</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">API Token</label>
                 <input 
                   type="password"
                   value={fonnteToken}
                   onChange={(e) => setFonnteToken(e.target.value)}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
+                  placeholder="Paste Fonnte Token here..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Target (Group ID / Phone)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Target (Group ID / Phone)</label>
                 <input 
                   type="text"
                   value={fonnteTarget}
                   onChange={(e) => setFonnteTarget(e.target.value)}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                  placeholder="e.g. 62812xxx or GroupID"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                 />
               </div>
-              <div className="pt-4 flex space-x-3">
-                <button onClick={() => setShowFonnteSettings(false)} className="flex-1 py-4 text-slate-500 font-bold text-sm">Batal</button>
-                <button onClick={saveFonnte} className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-emerald-500/20">SIMPAN</button>
+              <div className="flex space-x-3 pt-4">
+                <button 
+                  onClick={() => setShowFonnteSettings(false)}
+                  className="flex-1 py-3 text-slate-500 font-bold text-sm"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={saveFonnte}
+                  className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-black text-sm shadow-lg shadow-emerald-500/20"
+                >
+                  SIMPAN
+                </button>
               </div>
             </div>
           </div>
@@ -260,20 +274,23 @@ const App: React.FC = () => {
       <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-24 md:pb-8">
         <header className="mb-6 md:mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">
-              {activeTab === 'dashboard' ? 'OPERATIONAL BOARD' : 
-               activeTab === 'request' ? 'NEW RESERVATION' :
-               activeTab === 'change-request' ? 'MODIFY DATA' :
-               activeTab === 'schedule' ? 'LIVE TIMELINE' : 'WHATSAPP GROUP'}
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800">
+              {activeTab.toUpperCase()}
             </h1>
-            <p className="text-slate-500 text-xs font-medium">SCM Heavy Transport Management System</p>
+            <p className="text-slate-500 text-sm italic">Fonnte WhatsApp Integration Ready</p>
           </div>
           <div className="flex space-x-2">
             <div className={`flex items-center space-x-2 text-[10px] px-4 py-2 rounded-full font-bold shadow-sm ${
-              fonnteToken ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'
-            }`}>
+              fonnteToken ? 'bg-emerald-600' : 'bg-slate-400'
+            } text-white`}>
               <i className="fa-brands fa-whatsapp"></i>
               <span>FONNTE: {fonnteToken ? 'ACTIVE' : 'OFFLINE'}</span>
+            </div>
+            <div className={`flex items-center space-x-2 text-[10px] px-4 py-2 rounded-full font-bold shadow-sm ${
+              connectionStatus === 'connected' ? 'bg-blue-600' : 'bg-rose-600'
+            } text-white`}>
+              <i className={`fa-solid ${connectionStatus === 'connected' ? 'fa-bolt' : 'fa-circle-exclamation'}`}></i>
+              <span>DB: {connectionStatus === 'connected' ? 'SYNC' : 'ERROR'}</span>
             </div>
           </div>
         </header>
@@ -288,16 +305,16 @@ const App: React.FC = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
             <i className="fa-solid fa-spinner fa-spin text-3xl mb-4"></i>
-            <p className="font-bold text-xs uppercase tracking-widest">Sinkronisasi Data...</p>
+            <p className="font-bold text-xs uppercase">Menyinkronkan...</p>
           </div>
         ) : (
-          <div className="animate-in fade-in duration-500">
+          <>
             {activeTab === 'dashboard' && <Dashboard bookings={bookings} updateStatus={updateStatus} deleteBooking={deleteBooking} />}
             {activeTab === 'request' && <RequestForm onSubmit={handleNewRequest} />}
             {activeTab === 'change-request' && <ChangeRequestForm bookings={bookings} onUpdate={handleUpdateBooking} onDelete={deleteBooking} />}
             {activeTab === 'schedule' && <ScheduleView bookings={bookings} />}
             {activeTab === 'group-chat' && <LogisticsGroupChat notifications={notifications} onSendMessage={handleGroupChatMessage} />}
-          </div>
+          </>
         )}
       </main>
     </div>

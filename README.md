@@ -1,66 +1,32 @@
 
-# SCM Heavy Transport - Panduan Integrasi WhatsApp Asli
+# SCM Heavy Transport Booking System
 
-Aplikasi ini sekarang terhubung dengan **Fonnte**. Setiap pemesanan akan otomatis mengirim pesan ke WhatsApp Grup.
+Aksi cepat untuk manajemen transportasi alat berat SCM.
 
-## 🛠️ Langkah Selanjutnya: Aktivasi Fitur /CLOSE
+## Cara Mendapatkan Link Web (Deployment)
 
-Agar Anda bisa mengetik `/CLOSE REQ-xxxxx` di WhatsApp dan status di web berubah otomatis, ikuti langkah ini:
+Untuk mendapatkan link yang bisa diakses oleh siapa saja (publik), ikuti langkah mudah ini:
 
-### 1. Siapkan Database di Supabase
-Pastikan tabel `bookings` Anda memiliki kolom `status`. Jika Anda menggunakan kode saya, ini sudah ada.
+### 1. Menggunakan Vercel (Paling Cepat & Gratis)
+1. Buat akun di [Vercel](https://vercel.com).
+2. Install Vercel CLI atau hubungkan akun GitHub Anda.
+3. Klik "Add New Project" dan pilih repositori yang berisi file ini.
+4. Vercel akan otomatis memberikan link seperti `scm-transport.vercel.app`.
 
-### 2. Buat "Supabase Edge Function"
-Buka terminal di project Anda dan buat fungsi baru (atau gunakan dashboard Supabase):
+### 2. Menggunakan Netlify
+1. Drag & drop folder aplikasi ini ke [Netlify Drop](https://app.netlify.com/drop).
+2. Anda akan mendapatkan link publik secara instan.
+
+### Fitur Utama:
+- **Dashboard**: Memantau status Requested, On Progress, Pending, dan Close.
+- **AI Enhancement**: Menggunakan Gemini AI untuk memperbaiki deskripsi pekerjaan teknis.
+- **WhatsApp Simulation**: Simulasi fitur `/CLOSE` untuk merubah status secara otomatis.
+- **Auto-Save**: Data tersimpan otomatis di browser (LocalStorage).
+
+### Menjalankan di Lokal:
 ```bash
-supabase functions new fonnte-webhook
+npm install
+npm run dev
 ```
 
-Gunakan kode berikut untuk file `index.ts` di Edge Function tersebut:
-
-```typescript
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-Deno.serve(async (req) => {
-  const { message, sender } = await req.json()
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
-
-  // Cek apakah pesan mengandung perintah /CLOSE
-  const text = message.toUpperCase()
-  if (text.startsWith('/CLOSE ')) {
-    const requestId = text.split(' ')[1]
-    
-    // Update status di database
-    const { error } = await supabase
-      .from('bookings')
-      .update({ status: 'Close' })
-      .eq('id', requestId)
-
-    if (!error) {
-      // Kirim balasan konfirmasi (Opsional) ke Fonnte
-      return new Response(JSON.stringify({ status: true, message: 'Berhasil ditutup' }), { headers: { "Content-Type": "application/json" } })
-    }
-  }
-
-  return new Response(JSON.stringify({ status: false }), { status: 200 })
-})
-```
-
-### 3. Daftarkan URL Webhook di Fonnte
-1. Deploy fungsi di atas: `supabase functions deploy fonnte-webhook`.
-2. Salin URL yang diberikan (contoh: `https://xxxx.supabase.co/functions/v1/fonnte-webhook`).
-3. Buka Dashboard Fonnte -> Menu **Webhook**.
-4. Masukkan URL tersebut ke kolom **Webhook URL**.
-5. Klik **Simpan**.
-
----
-
-## 🚀 Selesai!
-Sekarang, alur kerja tim Anda:
-1. **Operator** buat booking di Web.
-2. **Grup WhatsApp** terima notifikasi otomatis.
-3. **Pekerja Lapangan** ketik `/CLOSE REQ-00001` saat selesai.
-4. **Dashboard Web** langsung berubah warna jadi hijau secara real-time!
+Pastikan Anda memiliki file `.env` dengan variabel `API_KEY` dari Google AI Studio jika ingin fitur AI tetap aktif.
