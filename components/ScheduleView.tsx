@@ -36,7 +36,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ bookings }) => {
     return ((h * 60 + m) / 1440) * 100;
   };
 
-  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const hours = Array.from({ length: 25 }, (_, i) => i); // 0 to 24 for full coverage
 
   const getStatusBg = (status: JobStatus) => {
     switch (status) {
@@ -86,21 +86,27 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ bookings }) => {
       </div>
 
       <div className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative">
-        <div className="md:hidden absolute top-0 right-0 p-2 text-[9px] font-bold text-slate-300 pointer-events-none z-30">
+        <div className="md:hidden absolute top-0 right-0 p-2 text-[9px] font-bold text-slate-300 pointer-events-none z-40">
           <i className="fa-solid fa-arrows-left-right mr-1"></i> Swipe to scroll
         </div>
         
         <div className="overflow-x-auto scrollbar-hide">
           <div className="min-w-[1000px] md:min-w-[1440px]">
             {/* Timeline Header (Hours) */}
-            <div className="flex border-b border-slate-100">
-              <div className="w-32 md:w-40 p-4 bg-slate-50 font-black text-[10px] text-slate-400 uppercase border-r border-slate-100 sticky left-0 z-30">
-                Resource
+            <div className="flex border-b border-slate-100 relative">
+              <div className="w-32 md:w-40 p-4 bg-slate-50 font-black text-[10px] text-slate-500 uppercase border-r-2 border-slate-200 sticky left-0 z-30">
+                UNIT
               </div>
-              <div className="flex-1 flex bg-slate-50/50">
+              <div className="flex-1 relative h-12 bg-slate-50">
                 {hours.map(h => (
-                  <div key={h} className="flex-1 border-r border-slate-100/50 text-[10px] text-slate-400 p-2 font-mono flex items-end justify-center">
-                    {String(h).padStart(2, '0')}:00
+                  <div 
+                    key={h} 
+                    className="absolute top-0 bottom-0 border-r border-slate-100 flex flex-col items-center" 
+                    style={{ left: `${(h/24)*100}%` }}
+                  >
+                    <span className="text-[9px] font-mono text-slate-400 mt-auto pb-1">
+                      {h < 24 ? `${String(h).padStart(2, '0')}:00` : '00:00'}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -110,25 +116,29 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ bookings }) => {
             <div className="divide-y divide-slate-100">
               {Object.values(EquipmentType).map(type => (
                 <div key={type} className="flex group hover:bg-slate-50/30 transition-colors">
-                  <div className="w-32 md:w-40 p-4 border-r border-slate-100 flex items-center sticky left-0 z-30 bg-white group-hover:bg-slate-50">
-                    <span className="font-bold text-xs md:text-sm text-slate-700 truncate">{type}</span>
+                  <div className="w-32 md:w-40 p-4 border-r-2 border-slate-200 flex items-center sticky left-0 z-30 bg-white group-hover:bg-slate-50">
+                    <span className="font-bold text-xs md:text-sm text-slate-700 truncate uppercase tracking-tight">{type}</span>
                   </div>
-                  <div className="flex-1 h-16 md:h-20 relative bg-[size:20px_20px] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)]">
+                  <div className="flex-1 h-16 md:h-20 relative bg-white">
                     {/* Visual Grid Lines */}
                     {hours.map(h => (
-                      <div key={h} className="absolute top-0 bottom-0 border-r border-slate-100/30" style={{ left: `${(h/24)*100}%` }}></div>
+                      <div 
+                        key={h} 
+                        className={`absolute top-0 bottom-0 border-r ${h % 6 === 0 ? 'border-slate-200' : 'border-slate-100'}`} 
+                        style={{ left: `${(h/24)*100}%` }}
+                      ></div>
                     ))}
 
                     {/* Job Blocks */}
                     {filteredBookings.filter(b => b.unit === type).map(booking => {
                       const start = timeToPercent(booking.startTime);
                       const end = timeToPercent(booking.endTime);
-                      const width = Math.max(end - start, 2); // Minimum width for visibility
+                      const width = Math.max(end - start, 1);
 
                       return (
                         <div 
                           key={booking.id}
-                          className={`absolute top-2 bottom-2 rounded-lg shadow-sm px-2 py-1 text-white overflow-hidden cursor-pointer active:scale-95 transition-all z-10 flex flex-col justify-center ${getStatusBg(booking.status)}`}
+                          className={`absolute top-2 bottom-2 rounded-lg shadow-sm px-2 py-1 text-white overflow-hidden cursor-pointer active:scale-95 transition-all z-10 flex flex-col justify-center border border-white/20 ${getStatusBg(booking.status)}`}
                           style={{ left: `${start}%`, width: `${width}%` }}
                         >
                           <div className="text-[9px] md:text-[10px] font-black leading-none truncate mb-0.5">{booking.id}</div>
@@ -154,21 +164,21 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ bookings }) => {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 md:gap-4 text-[9px] md:text-[10px] font-black uppercase text-slate-500 bg-white p-3 md:p-4 rounded-xl border border-slate-200">
+      <div className="flex flex-wrap gap-4 text-[9px] md:text-[10px] font-black uppercase text-slate-500 bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center space-x-1.5">
-          <div className="w-2.5 h-2.5 rounded bg-blue-500"></div>
-          <span>Req</span>
+          <div className="w-2.5 h-2.5 rounded-sm bg-blue-500"></div>
+          <span>Requested</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <div className="w-2.5 h-2.5 rounded bg-amber-500"></div>
-          <span>Prog</span>
+          <div className="w-2.5 h-2.5 rounded-sm bg-amber-500"></div>
+          <span>On Progress</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <div className="w-2.5 h-2.5 rounded bg-rose-500"></div>
-          <span>Pend</span>
+          <div className="w-2.5 h-2.5 rounded-sm bg-rose-500"></div>
+          <span>Pending</span>
         </div>
         <div className="flex items-center space-x-1.5">
-          <div className="w-2.5 h-2.5 rounded bg-emerald-500"></div>
+          <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500"></div>
           <span>Closed</span>
         </div>
       </div>
