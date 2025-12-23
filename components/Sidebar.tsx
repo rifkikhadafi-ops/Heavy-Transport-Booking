@@ -21,9 +21,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
       <aside className="hidden md:flex w-64 bg-slate-900 text-white flex-col py-8 shadow-xl">
         <div className="px-6 mb-10 flex items-center space-x-3">
           <div className="h-10 px-2 min-w-[40px] bg-blue-600 rounded-lg flex items-center justify-center text-sm font-black shadow-lg shadow-blue-500/50 uppercase tracking-tighter">
-            SCM
+            AB
           </div>
-          <span className="font-bold text-lg tracking-tight">SCM TRANSPORT</span>
+          <span className="font-bold text-lg tracking-tight">Angkutan Berat</span>
         </div>
 
         <nav className="flex-1 px-3 space-y-2">
@@ -38,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
               }`}
             >
               <i className={`${item.icon} w-6 text-center`}></i>
-              <span className="ml-3 font-medium">{item.label}</span>
+              <span className="ml-3 font-medium text-sm leading-tight text-left">{item.label}</span>
             </button>
           ))}
         </nav>
@@ -64,7 +64,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             <div className={`text-lg mb-0.5 ${activeTab === item.id ? 'scale-110' : ''}`}>
               <i className={item.icon}></i>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+            <span className="text-[9px] font-bold uppercase tracking-tighter text-center">
+              {item.label}
+            </span>
           </button>
         ))}
       </nav>

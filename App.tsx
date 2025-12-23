@@ -43,6 +43,17 @@ const App: React.FC = () => {
     localStorage.setItem('scm_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
+  const getHeaderTitle = () => {
+    switch (activeTab) {
+      case 'dashboard': return 'Dashboard';
+      case 'request': return 'Create Request';
+      case 'change-request': return 'Change Request';
+      case 'schedule': return 'Live Schedule';
+      case 'group-chat': return 'Group';
+      default: return 'Angkutan Berat';
+    }
+  };
+
   const sendWANotification = (request: BookingRequest, isUpdate: boolean = false) => {
     const waMessageId = `WA-MSG-${Math.floor(10000 + Math.random() * 90000)}`;
     const header = isUpdate ? '*[UPDATED]*' : '*[NEW BOOKING]*';
@@ -88,7 +99,6 @@ const App: React.FC = () => {
     const userMsgId = `USER-${Date.now()}`;
     const upperText = text.toUpperCase();
     
-    // Add user message to chat history
     setNotifications(prev => [{
       id: userMsgId,
       requestId: 'USER-CHAT',
@@ -98,7 +108,6 @@ const App: React.FC = () => {
       isSystem: false
     }, ...prev]);
 
-    // Command Parser
     const processCommand = (command: string, action: (id: string) => void, feedbackEmoji: string, feedbackText: string) => {
       if (upperText.startsWith(command)) {
         const parts = text.split(' ');
@@ -147,7 +156,6 @@ const App: React.FC = () => {
       return false;
     };
 
-    // Execute Commands
     const handled = 
       processCommand('/CLOSE', (id) => updateStatus(id, JobStatus.CLOSE), '✅', 'Status request telah diubah menjadi CLOSED untuk') ||
       processCommand('/PENDING', (id) => updateStatus(id, JobStatus.PENDING), '⏳', 'Status request telah diubah menjadi PENDING untuk') ||
@@ -174,7 +182,7 @@ const App: React.FC = () => {
       <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-24 md:pb-8">
         <header className="mb-6 md:mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-slate-800">SCM Transport Control</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800">{getHeaderTitle()}</h1>
             <p className="text-slate-500 text-sm">Target Group: Model Angber</p>
           </div>
           <div className="flex items-center space-x-2 md:space-x-4">

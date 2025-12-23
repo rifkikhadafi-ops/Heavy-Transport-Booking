@@ -37,7 +37,7 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
       </div>
       
       <form onSubmit={handleSubmit} className="p-4 md:p-8 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-3">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unit Type</label>
             <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 md:gap-3">
@@ -59,19 +59,22 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-5">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Job Schedule</label>
-            <div className="space-y-3">
-              <input 
-                type="date" 
-                required
-                className="w-full p-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-5">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Date</span>
+                <input 
+                  type="date" 
+                  required
+                  className="w-full p-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Start</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Start Time</span>
                   <input 
                     type="time" 
                     required
