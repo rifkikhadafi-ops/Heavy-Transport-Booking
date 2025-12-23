@@ -1,11 +1,10 @@
-
 /**
  * Fonnte Service
  * Digunakan untuk mengirim pesan WhatsApp melalui API Fonnte
  */
 
 const getFonnteConfig = () => {
-  // Menggunakan token dan target terbaru sebagai default
+  // Menggunakan token dan target default dari user
   return {
     token: localStorage.getItem('FONNTE_TOKEN') || 'gbEKgb8a9AETB3j7ajST',
     target: localStorage.getItem('FONNTE_TARGET') || 'DWtI8Gsw7zv1uvWuxdrpTw'
@@ -22,20 +21,24 @@ export const sendWhatsAppMessage = async (message: string): Promise<{ success: b
   try {
     /**
      * PERBAIKAN CORS:
-     * Mengirimkan token di dalam body (FormData) dan menghapus header 'Authorization'.
-     * Ini mengubah request menjadi "Simple Request" yang tidak memicu preflight CORS di browser.
+     * Kita menggunakan FormData dan memindahkan 'token' ke dalam body.
+     * Kita TIDAK menambahkan header 'Authorization' agar request dianggap 'Simple Request' oleh browser.
      */
     const formData = new FormData();
     formData.append('token', token.trim());
     formData.append('target', target.trim());
     formData.append('message', message);
-    formData.append('countryCode', '62');
+    formData.append('countryCode', '62'); // Kode negara Indonesia
 
     const response = await fetch('https://api.fonnte.com/send', {
       method: 'POST',
       body: formData,
-      // Jangan tambahkan headers kustom di sini untuk menghindari preflight CORS
+      // PENTING: Jangan tambahkan headers kustom di sini agar tidak kena blokir CORS
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status}`);
+    }
 
     const result = await response.json();
     console.log("Fonnte API Response:", result);
@@ -45,7 +48,7 @@ export const sendWhatsAppMessage = async (message: string): Promise<{ success: b
     } else {
       return { 
         success: false, 
-        message: result.reason || "Ditolak oleh Fonnte (Cek status koneksi nomor di dashboard Fonnte)", 
+        message: result.reason || "Gagal (Pastikan device di Fonnte berstatus 'Connected')", 
         rawResponse: result 
       };
     }
@@ -53,7 +56,7 @@ export const sendWhatsAppMessage = async (message: string): Promise<{ success: b
     console.error("Fonnte Fetch Error:", error);
     return { 
       success: false, 
-      message: "Gagal menghubungi server Fonnte (Cek Koneksi/CORS). Pastikan internet aktif." 
+      message: "Gagal menghubungi server Fonnte. Cek koneksi internet atau kendala CORS browser." 
     };
   }
 };

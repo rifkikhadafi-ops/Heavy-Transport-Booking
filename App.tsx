@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { JobStatus, BookingRequest, WhatsAppNotification } from './types';
 import { supabase, testConnection } from './services/supabaseClient';
@@ -18,10 +17,12 @@ const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'checking'>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Fonnte State - Diperbarui dengan token dan target baru
+  // Fonnte State
   const [showFonnteSettings, setShowFonnteSettings] = useState(false);
   const [fonnteToken, setFonnteToken] = useState(localStorage.getItem('FONNTE_TOKEN') || 'gbEKgb8a9AETB3j7ajST');
   const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || 'DWtI8Gsw7zv1uvWuxdrpTw');
+  const [isTestingFonnte, setIsTestingFonnte] = useState(false);
+  const [testResult, setTestResult] = useState<{success: boolean, message: string} | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -143,7 +144,7 @@ const App: React.FC = () => {
       await supabase.from('notifications').insert(newNotif);
       
       if (!fonnteRes.success) {
-        setErrorMessage(`⚠️ Pesanan tersimpan di sistem, tetapi gagal kirim ke WhatsApp: ${fonnteRes.message}`);
+        setErrorMessage(`⚠️ Pesanan tersimpan, tapi WA gagal: ${fonnteRes.message}`);
       }
 
       setActiveTab('dashboard');
@@ -180,7 +181,7 @@ const App: React.FC = () => {
     try {
       await supabase.from('bookings').delete().eq('id', id);
       await supabase.from('notifications').delete().eq('requestId', id);
-      await sendWhatsAppMessage(`🗑️ *CANCELLED*\n\nBooking ID *${id}* telah dihapus dari sistem oleh operator.`);
+      await sendWhatsAppMessage(`🗑️ *CANCELLED*\n\nBooking ID *${id}* telah dihapus dari sistem.`);
     } catch (err: any) {
       setErrorMessage(`Gagal menghapus: ${err.message}`);
     }
@@ -207,6 +208,18 @@ const App: React.FC = () => {
   const saveFonnte = () => {
     saveFonnteConfig(fonnteToken, fonnteTarget);
     setShowFonnteSettings(false);
+    setTestResult(null);
+  };
+
+  const handleTestFonnte = async () => {
+    setIsTestingFonnte(true);
+    setTestResult(null);
+    // Simpan dulu agar menggunakan token terbaru saat tes
+    saveFonnteConfig(fonnteToken, fonnteTarget);
+    
+    const res = await sendWhatsAppMessage("🧪 *TES KONEKSI SCM*\nSistem Transportasi Berat berhasil terhubung dengan WhatsApp Anda!");
+    setTestResult(res);
+    setIsTestingFonnte(false);
   };
 
   return (
@@ -226,7 +239,7 @@ const App: React.FC = () => {
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-8 animate-in zoom-in-95 duration-200">
             <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center space-x-3">
               <i className="fa-brands fa-whatsapp text-emerald-500 text-2xl"></i>
-              <span>FONNTE CONFIG</span>
+              <span>SETTING FONNTE</span>
             </h2>
             <div className="space-y-5">
               <div>
@@ -245,13 +258,32 @@ const App: React.FC = () => {
                   type="text"
                   value={fonnteTarget}
                   onChange={(e) => setFonnteTarget(e.target.value)}
-                  placeholder="e.g. GroupID"
+                  placeholder="e.g. DWtI8Gsw7zv1uvWuxdrpTw"
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                 />
+                <p className="text-[10px] text-slate-400 mt-2 italic">Gunakan Group ID untuk kirim ke Grup WhatsApp.</p>
               </div>
-              <div className="pt-4 flex space-x-3">
-                <button onClick={() => setShowFonnteSettings(false)} className="flex-1 py-4 text-slate-500 font-bold text-sm">Batal</button>
-                <button onClick={saveFonnte} className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-emerald-500/20">SIMPAN</button>
+
+              {testResult && (
+                <div className={`p-4 rounded-xl text-xs font-bold border ${testResult.success ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+                  <i className={`fa-solid mr-2 ${testResult.success ? 'fa-check-circle' : 'fa-exclamation-triangle'}`}></i>
+                  {testResult.message}
+                </div>
+              )}
+
+              <div className="pt-4 flex flex-col space-y-3">
+                <button 
+                  onClick={handleTestFonnte}
+                  disabled={isTestingFonnte}
+                  className="w-full py-4 bg-slate-100 text-slate-700 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-200 hover:bg-slate-200 disabled:opacity-50"
+                >
+                  {isTestingFonnte ? <i className="fa-solid fa-spinner fa-spin mr-2"></i> : <i className="fa-solid fa-paper-plane mr-2"></i>}
+                  Tes Kirim Pesan
+                </button>
+                <div className="flex space-x-3">
+                  <button onClick={() => { setShowFonnteSettings(false); setTestResult(null); }} className="flex-1 py-4 text-slate-500 font-bold text-sm">Tutup</button>
+                  <button onClick={saveFonnte} className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-emerald-500/20">SIMPAN</button>
+                </div>
               </div>
             </div>
           </div>
