@@ -61,7 +61,7 @@ const App: React.FC = () => {
 
     initConnection();
 
-    // --- REALTIME SUBSCRIPTION LOGIC ---
+    // --- REALTIME SUBSCRIPTION ---
     const channel = supabase
       .channel('realtime-scm-sync')
       .on('postgres_changes', { event: '*', table: 'bookings' }, (payload) => {
@@ -95,10 +95,38 @@ const App: React.FC = () => {
     };
   }, [fetchData]);
 
+  // Fungsi untuk menghasilkan ID selanjutnya (Sekuensial & Isi Celah)
+  const generateNextId = () => {
+    if (bookings.length === 0) return 'REQ-00001';
+
+    // Ambil semua angka dari ID format REQ-XXXXX
+    const usedNumbers = bookings
+      .map(b => {
+        const match = b.id.match(/REQ-(\d+)/);
+        return match ? parseInt(match[1], 10) : null;
+      })
+      .filter((n): n is number => n !== null)
+      .sort((a, b) => a - b);
+
+    // Cari angka terkecil yang belum digunakan (start from 1)
+    let nextNum = 1;
+    for (const num of usedNumbers) {
+      if (num === nextNum) {
+        nextNum++;
+      } else if (num > nextNum) {
+        // Celah ditemukan
+        break;
+      }
+    }
+
+    return `REQ-${String(nextNum).padStart(5, '0')}`;
+  };
+
   const handleNewRequest = async (newRequest: Omit<BookingRequest, 'id' | 'status' | 'requestedAt' | 'waMessageId'>) => {
     setErrorMessage(null);
     try {
-      const id = `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
+      // 1. Generate ID berdasarkan state terbaru
+      const id = generateNextId();
       const request: BookingRequest = { 
         ...newRequest, 
         id, 
@@ -106,10 +134,15 @@ const App: React.FC = () => {
         requestedAt: Date.now() 
       };
       
+      // 2. Simpan ke Database
       const { error: bError } = await supabase.from('bookings').insert(request);
       if (bError) throw bError;
 
-      const waMessageId = `WA-MSG-${Math.floor(10000 + Math.random() * 90000)}`;
+      // 3. Optimistic Update (PENTING: Update state lokal langsung agar ID selanjutnya benar)
+      setBookings(prev => [request, ...prev]);
+
+      // 4. Kirim Simulasi Notifikasi WA
+      const waMessageId = `WA-MSG-${Date.now()}`;
       const waContent = `*[NEW BOOKING]*\nID: ${id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\n\nKetik /CLOSE ${id} untuk menutup.`;
       
       await supabase.from('notifications').insert({
@@ -117,6 +150,7 @@ const App: React.FC = () => {
         content: waContent, timestamp: Date.now(), isSystem: true
       });
 
+      // Pindah ke Dashboard
       setActiveTab('dashboard');
     } catch (err: any) {
       setErrorMessage(`Gagal menyimpan: ${err.message}`);
@@ -128,6 +162,9 @@ const App: React.FC = () => {
     try {
       const { error } = await supabase.from('bookings').update(updatedData).eq('id', updatedData.id);
       if (error) throw error;
+      
+      // Update state lokal langsung
+      setBookings(prev => prev.map(b => b.id === updatedData.id ? updatedData : b));
       setActiveTab('dashboard');
     } catch (err: any) {
       setErrorMessage(`Gagal update: ${err.message}`);
@@ -138,6 +175,9 @@ const App: React.FC = () => {
     try {
       const { error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id);
       if (error) throw error;
+      
+      // Update state lokal langsung
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
     } catch (err: any) {
       setErrorMessage(`Gagal update status: ${err.message}`);
     }
@@ -147,6 +187,9 @@ const App: React.FC = () => {
     try {
       const { error } = await supabase.from('bookings').delete().eq('id', id);
       if (error) throw error;
+      
+      // Update state lokal langsung (menghapus item agar celah ID tersedia kembali)
+      setBookings(prev => prev.filter(b => b.id !== id));
       
       await supabase.from('notifications').insert({
         id: `DEL-${Date.now()}`, 
