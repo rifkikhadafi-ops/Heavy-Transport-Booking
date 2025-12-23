@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { JobStatus, BookingRequest, WhatsAppNotification } from './types';
 import { supabase, testConnection } from './services/supabaseClient';
-import { sendWhatsAppMessage, saveFonnteConfig } from './services/fonnteService';
+import { sendWhatsAppMessage, saveFonnteConfig, resetFonnteConfig } from './services/fonnteService';
 import Sidebar from './components/Sidebar';
 import RequestForm from './components/RequestForm';
 import ChangeRequestForm from './components/ChangeRequestForm';
@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'checking'>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Fonnte State - Diperbarui dengan data terbaru
+  // Fonnte State - Default terbaru
   const [showFonnteSettings, setShowFonnteSettings] = useState(false);
   const [fonnteToken, setFonnteToken] = useState(localStorage.getItem('FONNTE_TOKEN') || 'gbEKgb8a9AETB3j7ajST');
   const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || '120363403134308128@g.us');
@@ -211,10 +211,18 @@ const App: React.FC = () => {
     setTestResult(null);
   };
 
+  const handleResetFonnte = () => {
+    if (window.confirm("Ingin mengembalikan Token & Target ke pengaturan awal?")) {
+      resetFonnteConfig();
+      setFonnteToken('gbEKgb8a9AETB3j7ajST');
+      setFonnteTarget('120363403134308128@g.us');
+      setTestResult({ success: true, message: "Pengaturan telah di-reset ke default." });
+    }
+  };
+
   const handleTestFonnte = async () => {
     setIsTestingFonnte(true);
     setTestResult(null);
-    // Simpan dulu agar menggunakan token terbaru saat tes
     saveFonnteConfig(fonnteToken, fonnteTarget);
     
     const res = await sendWhatsAppMessage("🧪 *TES KONEKSI SCM*\nSistem Transportasi Berat berhasil terhubung dengan WhatsApp Grup!");
@@ -237,23 +245,33 @@ const App: React.FC = () => {
       {showFonnteSettings && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-8 animate-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center space-x-3">
-              <i className="fa-brands fa-whatsapp text-emerald-500 text-2xl"></i>
-              <span>SETTING FONNTE</span>
-            </h2>
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-xl font-black text-slate-800 flex items-center space-x-3">
+                <i className="fa-brands fa-whatsapp text-emerald-500 text-2xl"></i>
+                <span>SETTING FONNTE</span>
+              </h2>
+              <button 
+                onClick={handleResetFonnte}
+                className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-widest bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100"
+              >
+                Reset Default
+              </button>
+            </div>
+
             <div className="space-y-5">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">API Device Token</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Device Token (gbEKgb8a9...)</label>
                 <input 
-                  type="password"
+                  type="text"
                   value={fonnteToken}
                   onChange={(e) => setFonnteToken(e.target.value)}
                   placeholder="Paste Fonnte Device Token..."
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
                 />
+                <p className="text-[9px] text-slate-400 mt-2">Gunakan **Device Token** dari menu Device di Fonnte.</p>
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Target (Group ID / Phone)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">ID Group (120363403...)</label>
                 <input 
                   type="text" 
                   value={fonnteTarget}
@@ -261,7 +279,6 @@ const App: React.FC = () => {
                   placeholder="e.g. 120363403134308128@g.us"
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                 />
-                <p className="text-[10px] text-slate-400 mt-2 italic">Gunakan ID Group (akhiran @g.us) untuk kirim ke Grup.</p>
               </div>
 
               {testResult && (
@@ -306,7 +323,7 @@ const App: React.FC = () => {
               fonnteToken ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'
             }`}>
               <i className="fa-brands fa-whatsapp"></i>
-              <span>FONNTE: {fonnteToken ? 'ACTIVE' : 'OFFLINE'}</span>
+              <span>WA: {fonnteToken ? 'ACTIVE' : 'OFFLINE'}</span>
             </div>
             <div className={`flex items-center space-x-2 text-[10px] px-4 py-2 rounded-full font-bold shadow-sm ${
               connectionStatus === 'connected' ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white'

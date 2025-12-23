@@ -4,59 +4,55 @@
  */
 
 const getFonnteConfig = () => {
-  // Menggunakan token dan target terbaru yang diberikan user
+  // Prioritas: LocalStorage (User Input) -> Default Hardcoded
+  const storedToken = localStorage.getItem('FONNTE_TOKEN');
+  const storedTarget = localStorage.getItem('FONNTE_TARGET');
+  
   return {
-    token: localStorage.getItem('FONNTE_TOKEN') || 'gbEKgb8a9AETB3j7ajST',
-    target: localStorage.getItem('FONNTE_TARGET') || '120363403134308128@g.us'
+    token: (storedToken && storedToken !== 'undefined') ? storedToken.trim() : 'gbEKgb8a9AETB3j7ajST',
+    target: (storedTarget && storedTarget !== 'undefined') ? storedTarget.trim() : '120363403134308128@g.us'
   };
 };
 
 export const sendWhatsAppMessage = async (message: string): Promise<{ success: boolean; message: string; rawResponse?: any }> => {
   const { token, target } = getFonnteConfig();
 
-  if (!token || !target) {
-    return { success: false, message: "Konfigurasi Fonnte (Token/Target) belum diatur." };
+  if (!token || token.length < 5) {
+    return { success: false, message: "Token Fonnte tidak valid atau belum diisi." };
   }
 
   try {
-    /**
-     * PERBAIKAN CORS:
-     * Kita menggunakan FormData dan memindahkan 'token' ke dalam body.
-     * Kita TIDAK menambahkan header 'Authorization' agar request dianggap 'Simple Request' oleh browser.
-     */
     const formData = new FormData();
-    formData.append('token', token.trim());
-    formData.append('target', target.trim());
+    formData.append('token', token);
+    formData.append('target', target);
     formData.append('message', message);
-    formData.append('countryCode', '62'); // Kode negara Indonesia
+    formData.append('countryCode', '62');
 
     const response = await fetch('https://api.fonnte.com/send', {
       method: 'POST',
-      body: formData,
-      // PENTING: Jangan tambahkan headers kustom di sini agar tidak kena blokir CORS
+      body: formData
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`);
+      throw new Error(`HTTP ${response.status}`);
     }
 
     const result = await response.json();
-    console.log("Fonnte API Response:", result);
     
     if (result.status === true) {
       return { success: true, message: "Pesan WhatsApp terkirim!", rawResponse: result };
     } else {
       return { 
         success: false, 
-        message: result.reason || "Gagal (Pastikan device di Fonnte berstatus 'Connected')", 
+        message: result.reason || "Invalid Token / Device Disconnected", 
         rawResponse: result 
       };
     }
   } catch (error: any) {
-    console.error("Fonnte Fetch Error:", error);
+    console.error("Fonnte Error:", error);
     return { 
       success: false, 
-      message: "Gagal menghubungi server Fonnte. Cek koneksi internet atau kendala CORS browser." 
+      message: "Koneksi ke API Fonnte gagal. Cek internet." 
     };
   }
 };
@@ -64,4 +60,9 @@ export const sendWhatsAppMessage = async (message: string): Promise<{ success: b
 export const saveFonnteConfig = (token: string, target: string) => {
   localStorage.setItem('FONNTE_TOKEN', token.trim());
   localStorage.setItem('FONNTE_TARGET', target.trim());
+};
+
+export const resetFonnteConfig = () => {
+  localStorage.removeItem('FONNTE_TOKEN');
+  localStorage.removeItem('FONNTE_TARGET');
 };
