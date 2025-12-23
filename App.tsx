@@ -9,6 +9,40 @@ import Dashboard from './components/Dashboard';
 import ScheduleView from './components/ScheduleView';
 import LogisticsGroupChat from './components/LogisticsGroupChat';
 
+/* 
+  PENTING: JALANKAN SQL INI DI SUPABASE SQL EDITOR UNTUK FIX ERROR COLUMN:
+  
+  DROP TABLE IF EXISTS notifications;
+  DROP TABLE IF EXISTS bookings;
+
+  CREATE TABLE bookings (
+    "id" TEXT PRIMARY KEY,
+    "unit" TEXT NOT NULL,
+    "details" TEXT,
+    "date" TEXT,
+    "startTime" TEXT,
+    "endTime" TEXT,
+    "status" TEXT,
+    "requestedAt" BIGINT,
+    "waMessageId" TEXT
+  );
+
+  CREATE TABLE notifications (
+    "id" TEXT PRIMARY KEY,
+    "requestId" TEXT,
+    "sender" TEXT,
+    "content" TEXT,
+    "timestamp" BIGINT,
+    "isSystem" BOOLEAN
+  );
+
+  ALTER TABLE bookings DISABLE ROW LEVEL SECURITY;
+  ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
+  
+  -- AKTIFKAN REALTIME:
+  -- Pergi ke Database -> Replication -> Click '0 tables' pada supabase_realtime -> Centang bookings & notifications.
+*/
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat' | 'settings'>('dashboard');
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
@@ -24,7 +58,9 @@ const App: React.FC = () => {
 
   const fetchData = async () => {
     setIsLoading(true);
+    setErrorMessage(null);
     try {
+      // Menggunakan quote manual pada order jika perlu, tapi Supabase client biasanya menangani camelCase jika tabel dibuat dengan quote
       const { data: bData, error: bError } = await supabase
         .from('bookings')
         .select('*')
@@ -42,7 +78,7 @@ const App: React.FC = () => {
       if (nData) setNotifications(nData);
     } catch (err: any) {
       console.error("Fetch Error:", err);
-      setErrorMessage(`Gagal mengambil data: ${err.message}`);
+      setErrorMessage(`Gagal mengambil data: ${err.message}. Pastikan semua kolom (requestedAt, endTime, dll) sudah ada di tabel Supabase.`);
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +110,10 @@ const App: React.FC = () => {
       .channel('bookings-all')
       .on('postgres_changes', { event: '*', table: 'bookings' }, (payload: any) => {
         if (payload.eventType === 'INSERT') {
-          setBookings(prev => [payload.new as BookingRequest, ...prev]);
+          setBookings(prev => {
+            const exists = prev.some(b => b.id === payload.new.id);
+            return exists ? prev : [payload.new as BookingRequest, ...prev];
+          });
         } else if (payload.eventType === 'UPDATE') {
           setBookings(prev => prev.map(b => b.id === payload.new.id ? payload.new as BookingRequest : b));
         } else if (payload.eventType === 'DELETE') {
@@ -86,7 +125,10 @@ const App: React.FC = () => {
     const notificationsSub = supabase
       .channel('notifications-all')
       .on('postgres_changes', { event: 'INSERT', table: 'notifications' }, (payload: any) => {
-        setNotifications(prev => [payload.new as WhatsAppNotification, ...prev]);
+        setNotifications(prev => {
+          const exists = prev.some(n => n.id === payload.new.id);
+          return exists ? prev : [payload.new as WhatsAppNotification, ...prev];
+        });
       })
       .subscribe();
 
@@ -118,8 +160,12 @@ const App: React.FC = () => {
       const waContent = `${header}\nID: ${request.id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\nDate: ${request.date}\n\nKetik /CLOSE [ID], /PENDING [ID], atau /CANCEL [ID].`;
       
       const { error } = await supabase.from('notifications').insert({
-        id: waMessageId, requestId: request.id, sender: '+622220454042',
-        content: waContent, timestamp: Date.now(), isSystem: true
+        id: waMessageId, 
+        requestId: request.id, 
+        sender: '+622220454042',
+        content: waContent, 
+        timestamp: Date.now(), 
+        isSystem: true
       });
       
       if (error) throw error;
@@ -134,7 +180,12 @@ const App: React.FC = () => {
     setErrorMessage(null);
     try {
       const id = `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
-      const request: BookingRequest = { ...newRequest, id, status: JobStatus.REQUESTED, requestedAt: Date.now() };
+      const request: BookingRequest = { 
+        ...newRequest, 
+        id, 
+        status: JobStatus.REQUESTED, 
+        requestedAt: Date.now() 
+      };
       
       const waId = await sendWANotification(request);
       if (waId) request.waMessageId = waId;
@@ -143,10 +194,10 @@ const App: React.FC = () => {
       if (error) throw error;
       
       setActiveTab('dashboard');
-      // Re-fetch to be sure state is synced
       fetchData();
     } catch (err: any) {
-      setErrorMessage(`Gagal menyimpan booking: ${err.message}`);
+      console.error("Insert Error:", err);
+      setErrorMessage(`Gagal menyimpan booking: ${err.message}. Pastikan kolom 'endTime' dan 'requestedAt' ada di database.`);
     }
   };
 
@@ -175,11 +226,18 @@ const App: React.FC = () => {
 
   const handleGroupChatMessage = async (text: string) => {
     try {
-      const userNotif = { id: `USER-${Date.now()}`, requestId: 'USER-CHAT', sender: 'Operator', content: text, timestamp: Date.now(), isSystem: false };
+      const userNotif = { 
+        id: `USER-${Date.now()}`, 
+        requestId: 'USER-CHAT', 
+        sender: 'Operator', 
+        content: text, 
+        timestamp: Date.now(), 
+        isSystem: false 
+      };
       await supabase.from('notifications').insert(userNotif);
 
-      const command = text.toUpperCase();
-      const parts = command.split(' ');
+      const commandText = text.toUpperCase();
+      const parts = commandText.split(' ');
       const cmd = parts[0];
       const id = parts[1];
 
@@ -191,13 +249,21 @@ const App: React.FC = () => {
           if (cmd === '/CANCEL') await supabase.from('bookings').delete().eq('id', id);
           
           await supabase.from('notifications').insert({ 
-            id: `SYS-${Date.now()}`, requestId: id, sender: '+622220454042', 
-            content: `✅ Perintah ${cmd} untuk ${id} diproses.`, timestamp: Date.now(), isSystem: true 
+            id: `SYS-${Date.now()}`, 
+            requestId: id, 
+            sender: '+622220454042', 
+            content: `✅ Perintah ${cmd} untuk ${id} diproses.`, 
+            timestamp: Date.now(), 
+            isSystem: true 
           });
         } else {
           await supabase.from('notifications').insert({ 
-            id: `SYS-${Date.now()}`, requestId: 'ERROR', sender: '+622220454042', 
-            content: `❌ ID "${id}" tidak ditemukan.`, timestamp: Date.now(), isSystem: true 
+            id: `SYS-${Date.now()}`, 
+            requestId: 'ERROR', 
+            sender: '+622220454042', 
+            content: `❌ ID "${id}" tidak ditemukan.`, 
+            timestamp: Date.now(), 
+            isSystem: true 
           });
         }
       }
@@ -314,11 +380,14 @@ const App: React.FC = () => {
 
         {errorMessage && activeTab !== 'settings' && (
           <div className="mb-6 bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-center justify-between">
-            <div className="flex items-center space-x-3 text-rose-700 text-sm font-bold">
-              <i className="fa-solid fa-triangle-exclamation"></i>
+            <div className="flex items-center space-x-3 text-rose-700 text-sm font-bold flex-1">
+              <i className="fa-solid fa-triangle-exclamation flex-shrink-0"></i>
               <span>{errorMessage}</span>
             </div>
-            <button onClick={() => setErrorMessage(null)} className="text-xs font-black text-rose-600 uppercase">Tutup</button>
+            <div className="flex items-center space-x-2 ml-4">
+              <button onClick={() => fetchData()} className="text-xs font-black text-blue-600 uppercase hover:underline">Retry</button>
+              <button onClick={() => setErrorMessage(null)} className="text-xs font-black text-rose-600 uppercase">Tutup</button>
+            </div>
           </div>
         )}
 

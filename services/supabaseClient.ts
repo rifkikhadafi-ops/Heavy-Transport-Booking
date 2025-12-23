@@ -43,13 +43,13 @@ export const testConnection = async (customUrl?: string, customKey?: string) => 
       ? createClient(customUrl, customKey) 
       : supabase;
       
-    const { error } = await client.from('bookings').select('id').limit(1);
+    const { error, data } = await client.from('bookings').select('id, requestedAt, endTime').limit(1);
     
     if (error) {
       if (error.code === 'PGRST116' || error.message.includes('not found')) {
-        return { success: false, message: 'Tabel "bookings" tidak ditemukan. Pastikan SQL sudah dijalankan di Dashboard Supabase.' };
+        return { success: false, message: 'Tabel "bookings" tidak ditemukan atau struktur kolom salah. Pastikan SQL sudah dijalankan di Dashboard Supabase.' };
       }
-      return { success: false, message: `Error: ${error.message}` };
+      return { success: false, message: `Error Database: ${error.message}` };
     }
     
     return { success: true, message: 'Koneksi Berhasil!' };
