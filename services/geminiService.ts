@@ -18,7 +18,7 @@ export const enhanceJobDescription = async (details: string): Promise<string> =>
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `You are an expert SCM logistics coordinator. Enhance the following heavy transport job details to be more professional and technically clear for operations. Keep it concise. Original details: "${details}"`,
+      contents: `You are an expert SCM logistics coordinator. Enhance the following heavy transport job details (supporting units like Crane, Foco Crane, Primemover, Picker, and TSO) to be more professional and technically clear for operations. Keep it concise. Original details: "${details}"`,
       config: {
         temperature: 0.7,
       },
