@@ -4,10 +4,10 @@
  */
 
 const getFonnteConfig = () => {
-  // Menggunakan token dan target default dari user
+  // Menggunakan token dan target terbaru yang diberikan user
   return {
     token: localStorage.getItem('FONNTE_TOKEN') || 'gbEKgb8a9AETB3j7ajST',
-    target: localStorage.getItem('FONNTE_TARGET') || 'DWtI8Gsw7zv1uvWuxdrpTw'
+    target: localStorage.getItem('FONNTE_TARGET') || '120363403134308128@g.us'
   };
 };
 

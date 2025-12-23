@@ -17,10 +17,10 @@ const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'checking'>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Fonnte State
+  // Fonnte State - Diperbarui dengan data terbaru
   const [showFonnteSettings, setShowFonnteSettings] = useState(false);
   const [fonnteToken, setFonnteToken] = useState(localStorage.getItem('FONNTE_TOKEN') || 'gbEKgb8a9AETB3j7ajST');
-  const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || 'DWtI8Gsw7zv1uvWuxdrpTw');
+  const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || '120363403134308128@g.us');
   const [isTestingFonnte, setIsTestingFonnte] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean, message: string} | null>(null);
 
@@ -217,7 +217,7 @@ const App: React.FC = () => {
     // Simpan dulu agar menggunakan token terbaru saat tes
     saveFonnteConfig(fonnteToken, fonnteTarget);
     
-    const res = await sendWhatsAppMessage("🧪 *TES KONEKSI SCM*\nSistem Transportasi Berat berhasil terhubung dengan WhatsApp Anda!");
+    const res = await sendWhatsAppMessage("🧪 *TES KONEKSI SCM*\nSistem Transportasi Berat berhasil terhubung dengan WhatsApp Grup!");
     setTestResult(res);
     setIsTestingFonnte(false);
   };
@@ -243,25 +243,25 @@ const App: React.FC = () => {
             </h2>
             <div className="space-y-5">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">API Token</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">API Device Token</label>
                 <input 
                   type="password"
                   value={fonnteToken}
                   onChange={(e) => setFonnteToken(e.target.value)}
-                  placeholder="Paste Fonnte Token..."
+                  placeholder="Paste Fonnte Device Token..."
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
                 />
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Target (Group ID / Phone)</label>
                 <input 
-                  type="text"
+                  type="text" 
                   value={fonnteTarget}
                   onChange={(e) => setFonnteTarget(e.target.value)}
-                  placeholder="e.g. DWtI8Gsw7zv1uvWuxdrpTw"
+                  placeholder="e.g. 120363403134308128@g.us"
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                 />
-                <p className="text-[10px] text-slate-400 mt-2 italic">Gunakan Group ID untuk kirim ke Grup WhatsApp.</p>
+                <p className="text-[10px] text-slate-400 mt-2 italic">Gunakan ID Group (akhiran @g.us) untuk kirim ke Grup.</p>
               </div>
 
               {testResult && (
@@ -278,7 +278,7 @@ const App: React.FC = () => {
                   className="w-full py-4 bg-slate-100 text-slate-700 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-200 hover:bg-slate-200 disabled:opacity-50"
                 >
                   {isTestingFonnte ? <i className="fa-solid fa-spinner fa-spin mr-2"></i> : <i className="fa-solid fa-paper-plane mr-2"></i>}
-                  Tes Kirim Pesan
+                  Tes Kirim ke Grup
                 </button>
                 <div className="flex space-x-3">
                   <button onClick={() => { setShowFonnteSettings(false); setTestResult(null); }} className="flex-1 py-4 text-slate-500 font-bold text-sm">Tutup</button>
