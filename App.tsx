@@ -234,7 +234,7 @@ const App: React.FC = () => {
           </form>
           <div className="px-8 pb-8 text-[10px] text-slate-400 text-center leading-relaxed">
             Anda bisa menemukan kunci ini di: <br/>
-            <strong>Settings > API</strong> di Dashboard Supabase.
+            <strong>Settings &gt; API</strong> di Dashboard Supabase.
           </div>
         </div>
       </div>
