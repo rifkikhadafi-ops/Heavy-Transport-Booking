@@ -1,13 +1,21 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+declare var process: {
+  env: {
+    SUPABASE_URL?: string;
+    SUPABASE_ANON_KEY?: string;
+    [key: string]: string | undefined;
+  }
+};
+
 const getKeys = () => {
   const storedUrl = localStorage.getItem('SCM_SUPABASE_URL');
   const storedKey = localStorage.getItem('SCM_SUPABASE_KEY');
   
   return {
-    url: process.env.SUPABASE_URL || storedUrl || '',
-    key: process.env.SUPABASE_ANON_KEY || storedKey || ''
+    url: (typeof process !== 'undefined' && process.env.SUPABASE_URL) || storedUrl || '',
+    key: (typeof process !== 'undefined' && process.env.SUPABASE_ANON_KEY) || storedKey || ''
   };
 };
 
@@ -25,9 +33,6 @@ export const isSupabaseConfigured = () => {
   return url !== '' && key !== '' && !url.includes('placeholder');
 };
 
-/**
- * Verifies if the connection is active and tables exist
- */
 export const testConnection = async (customUrl?: string, customKey?: string) => {
   try {
     const client = customUrl && customKey 

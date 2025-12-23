@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { EquipmentType, JobStatus, BookingRequest, WhatsAppNotification } from './types';
+import { JobStatus, BookingRequest, WhatsAppNotification } from './types';
 import { supabase, isSupabaseConfigured, updateSupabaseClient, testConnection } from './services/supabaseClient';
 import Sidebar from './components/Sidebar';
 import RequestForm from './components/RequestForm';
@@ -18,7 +18,6 @@ const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'checking'>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Supabase Setup State
   const [tempUrl, setTempUrl] = useState(localStorage.getItem('SCM_SUPABASE_URL') || '');
   const [tempKey, setTempKey] = useState(localStorage.getItem('SCM_SUPABASE_KEY') || '');
   const [isTesting, setIsTesting] = useState(false);
@@ -67,15 +66,14 @@ const App: React.FC = () => {
 
     initConnection();
 
-    // Setup Realtime Channels
     const bookingsSub = supabase
       .channel('bookings-realtime')
-      .on('postgres_changes', { event: '*', table: 'bookings' }, payload => {
-        if (payload.eventType === 'INSERT') {
+      .on('postgres_changes', { event: '*', table: 'bookings' }, (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
           setBookings(prev => prev.find(b => b.id === payload.new.id) ? prev : [payload.new as BookingRequest, ...prev]);
-        } else if (payload.eventType === 'UPDATE') {
+        } else if (payload.eventType === 'UPDATE' && payload.new) {
           setBookings(prev => prev.map(b => b.id === payload.new.id ? payload.new as BookingRequest : b));
-        } else if (payload.eventType === 'DELETE') {
+        } else if (payload.eventType === 'DELETE' && payload.old) {
           setBookings(prev => prev.filter(b => b.id !== payload.old.id));
         }
       })
@@ -83,8 +81,10 @@ const App: React.FC = () => {
 
     const notificationsSub = supabase
       .channel('notifications-realtime')
-      .on('postgres_changes', { event: 'INSERT', table: 'notifications' }, payload => {
-        setNotifications(prev => prev.find(n => n.id === payload.new.id) ? prev : [payload.new as WhatsAppNotification, ...prev]);
+      .on('postgres_changes', { event: 'INSERT', table: 'notifications' }, (payload: any) => {
+        if (payload.new) {
+          setNotifications(prev => prev.find(n => n.id === payload.new.id) ? prev : [payload.new as WhatsAppNotification, ...prev]);
+        }
       })
       .subscribe();
 
@@ -104,7 +104,6 @@ const App: React.FC = () => {
     if (test.success) {
       updateSupabaseClient(tempUrl, tempKey);
       setIsConfigured(true);
-      // Wait for re-render or reload
       window.location.reload();
     } else {
       setErrorMessage(test.message);
