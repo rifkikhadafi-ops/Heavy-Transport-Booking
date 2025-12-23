@@ -17,10 +17,10 @@ const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'checking'>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Fonnte State - Default terbaru
+  // Fonnte State - Diperbarui Target ke nomor test sesuai request
   const [showFonnteSettings, setShowFonnteSettings] = useState(false);
   const [fonnteToken, setFonnteToken] = useState(localStorage.getItem('FONNTE_TOKEN') || 'gbEKgb8a9AETB3j7ajST');
-  const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || '120363403134308128@g.us');
+  const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || '085158950003');
   const [isTestingFonnte, setIsTestingFonnte] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean, message: string} | null>(null);
 
@@ -131,7 +131,7 @@ const App: React.FC = () => {
       const { error: bError } = await supabase.from('bookings').insert(request);
       if (bError) throw bError;
 
-      const waContent = `🚛 *PEMESANAN BARU*\n\n*ID:* ${id}\n*Unit:* ${request.unit}\n*Pekerjaan:* ${request.details}\n*Waktu:* ${request.startTime} - ${request.endTime}\n*Tanggal:* ${request.date}\n\n_Ketik */CLOSE ${id}* di grup ini untuk menutup pekerjaan._`;
+      const waContent = `🚛 *PEMESANAN BARU*\n\n*ID:* ${id}\n*Unit:* ${request.unit}\n*Pekerjaan:* ${request.details}\n*Waktu:* ${request.startTime} - ${request.endTime}\n*Tanggal:* ${request.date}\n\n_Ketik */CLOSE ${id}* untuk menutup pekerjaan._`;
       
       const fonnteRes = await sendWhatsAppMessage(waContent);
       
@@ -215,7 +215,7 @@ const App: React.FC = () => {
     if (window.confirm("Ingin mengembalikan Token & Target ke pengaturan awal?")) {
       resetFonnteConfig();
       setFonnteToken('gbEKgb8a9AETB3j7ajST');
-      setFonnteTarget('120363403134308128@g.us');
+      setFonnteTarget('085158950003');
       setTestResult({ success: true, message: "Pengaturan telah di-reset ke default." });
     }
   };
@@ -225,7 +225,7 @@ const App: React.FC = () => {
     setTestResult(null);
     saveFonnteConfig(fonnteToken, fonnteTarget);
     
-    const res = await sendWhatsAppMessage("🧪 *TES KONEKSI SCM*\nSistem Transportasi Berat berhasil terhubung dengan WhatsApp Grup!");
+    const res = await sendWhatsAppMessage("🧪 *TES KONEKSI SCM*\nSistem Transportasi Berat berhasil terhubung dengan WhatsApp Anda!");
     setTestResult(res);
     setIsTestingFonnte(false);
   };
@@ -268,15 +268,14 @@ const App: React.FC = () => {
                   placeholder="Paste Fonnte Device Token..."
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-xs"
                 />
-                <p className="text-[9px] text-slate-400 mt-2">Gunakan **Device Token** dari menu Device di Fonnte.</p>
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">ID Group (120363403...)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Target Test (08515895...)</label>
                 <input 
                   type="text" 
                   value={fonnteTarget}
                   onChange={(e) => setFonnteTarget(e.target.value)}
-                  placeholder="e.g. 120363403134308128@g.us"
+                  placeholder="e.g. 085158950003 atau ID Group"
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                 />
               </div>
@@ -295,7 +294,7 @@ const App: React.FC = () => {
                   className="w-full py-4 bg-slate-100 text-slate-700 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-200 hover:bg-slate-200 disabled:opacity-50"
                 >
                   {isTestingFonnte ? <i className="fa-solid fa-spinner fa-spin mr-2"></i> : <i className="fa-solid fa-paper-plane mr-2"></i>}
-                  Tes Kirim ke Grup
+                  Tes Kirim WhatsApp
                 </button>
                 <div className="flex space-x-3">
                   <button onClick={() => { setShowFonnteSettings(false); setTestResult(null); }} className="flex-1 py-4 text-slate-500 font-bold text-sm">Tutup</button>

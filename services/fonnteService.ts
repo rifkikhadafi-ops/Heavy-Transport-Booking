@@ -10,7 +10,8 @@ const getFonnteConfig = () => {
   
   return {
     token: (storedToken && storedToken !== 'undefined') ? storedToken.trim() : 'gbEKgb8a9AETB3j7ajST',
-    target: (storedTarget && storedTarget !== 'undefined') ? storedTarget.trim() : '120363403134308128@g.us'
+    // Diperbarui ke nomor test yang diminta user
+    target: (storedTarget && storedTarget !== 'undefined') ? storedTarget.trim() : '085158950003'
   };
 };
 
