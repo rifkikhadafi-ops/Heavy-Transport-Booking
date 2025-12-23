@@ -81,12 +81,18 @@ const App: React.FC = () => {
           setBookings(prev => prev.filter(b => b.id !== deletedId));
         }
       })
-      .on('postgres_changes', { event: 'INSERT', table: 'notifications' }, (payload) => {
-        const newNotif = payload.new as WhatsAppNotification;
-        setNotifications(prev => {
-          const exists = prev.some(n => n.id === newNotif.id);
-          return exists ? prev : [newNotif, ...prev];
-        });
+      .on('postgres_changes', { event: '*', table: 'notifications' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newNotif = payload.new as WhatsAppNotification;
+          setNotifications(prev => {
+            const exists = prev.some(n => n.id === newNotif.id);
+            return exists ? prev : [newNotif, ...prev];
+          });
+        }
+        else if (payload.eventType === 'DELETE') {
+          const deletedId = payload.old.id;
+          setNotifications(prev => prev.filter(n => n.id !== deletedId));
+        }
       })
       .subscribe();
 
@@ -99,7 +105,6 @@ const App: React.FC = () => {
   const generateNextId = () => {
     if (bookings.length === 0) return 'REQ-00001';
 
-    // Ambil semua angka dari ID format REQ-XXXXX
     const usedNumbers = bookings
       .map(b => {
         const match = b.id.match(/REQ-(\d+)/);
@@ -108,13 +113,11 @@ const App: React.FC = () => {
       .filter((n): n is number => n !== null)
       .sort((a, b) => a - b);
 
-    // Cari angka terkecil yang belum digunakan (start from 1)
     let nextNum = 1;
     for (const num of usedNumbers) {
       if (num === nextNum) {
         nextNum++;
       } else if (num > nextNum) {
-        // Celah ditemukan
         break;
       }
     }
@@ -125,7 +128,6 @@ const App: React.FC = () => {
   const handleNewRequest = async (newRequest: Omit<BookingRequest, 'id' | 'status' | 'requestedAt' | 'waMessageId'>) => {
     setErrorMessage(null);
     try {
-      // 1. Generate ID berdasarkan state terbaru
       const id = generateNextId();
       const request: BookingRequest = { 
         ...newRequest, 
@@ -134,23 +136,22 @@ const App: React.FC = () => {
         requestedAt: Date.now() 
       };
       
-      // 2. Simpan ke Database
       const { error: bError } = await supabase.from('bookings').insert(request);
       if (bError) throw bError;
 
-      // 3. Optimistic Update (PENTING: Update state lokal langsung agar ID selanjutnya benar)
       setBookings(prev => [request, ...prev]);
 
-      // 4. Kirim Simulasi Notifikasi WA
       const waMessageId = `WA-MSG-${Date.now()}`;
       const waContent = `*[NEW BOOKING]*\nID: ${id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\n\nKetik /CLOSE ${id} untuk menutup.`;
       
-      await supabase.from('notifications').insert({
+      const newNotif = {
         id: waMessageId, requestId: id, sender: '+622220454042',
         content: waContent, timestamp: Date.now(), isSystem: true
-      });
+      };
 
-      // Pindah ke Dashboard
+      await supabase.from('notifications').insert(newNotif);
+      setNotifications(prev => [newNotif, ...prev]);
+
       setActiveTab('dashboard');
     } catch (err: any) {
       setErrorMessage(`Gagal menyimpan: ${err.message}`);
@@ -163,7 +164,6 @@ const App: React.FC = () => {
       const { error } = await supabase.from('bookings').update(updatedData).eq('id', updatedData.id);
       if (error) throw error;
       
-      // Update state lokal langsung
       setBookings(prev => prev.map(b => b.id === updatedData.id ? updatedData : b));
       setActiveTab('dashboard');
     } catch (err: any) {
@@ -176,7 +176,6 @@ const App: React.FC = () => {
       const { error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id);
       if (error) throw error;
       
-      // Update state lokal langsung
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
     } catch (err: any) {
       setErrorMessage(`Gagal update status: ${err.message}`);
@@ -185,20 +184,18 @@ const App: React.FC = () => {
 
   const deleteBooking = async (id: string) => {
     try {
-      const { error } = await supabase.from('bookings').delete().eq('id', id);
-      if (error) throw error;
+      // 1. Hapus Booking dari database
+      const { error: bError } = await supabase.from('bookings').delete().eq('id', id);
+      if (bError) throw bError;
+
+      // 2. Hapus semua pesan di chat yang berkaitan dengan requestId ini
+      const { error: nError } = await supabase.from('notifications').delete().eq('requestId', id);
+      if (nError) throw nError;
       
-      // Update state lokal langsung (menghapus item agar celah ID tersedia kembali)
+      // 3. Update state lokal untuk respon instan di UI
       setBookings(prev => prev.filter(b => b.id !== id));
+      setNotifications(prev => prev.filter(n => n.requestId !== id));
       
-      await supabase.from('notifications').insert({
-        id: `DEL-${Date.now()}`, 
-        requestId: id, 
-        sender: '+622220454042',
-        content: `❌ Request ${id} has been deleted from the system.`, 
-        timestamp: Date.now(), 
-        isSystem: true
-      });
     } catch (err: any) {
       setErrorMessage(`Gagal menghapus: ${err.message}`);
     }
@@ -215,6 +212,7 @@ const App: React.FC = () => {
         isSystem: false 
       };
       await supabase.from('notifications').insert(userNotif);
+      setNotifications(prev => [userNotif, ...prev]);
 
       const commandText = text.toUpperCase();
       const parts = commandText.split(' ');
@@ -226,10 +224,12 @@ const App: React.FC = () => {
         if (cmd === '/PENDING') await updateStatus(id, JobStatus.PENDING);
         if (cmd === '/CANCEL' || cmd === '/DELETE') await deleteBooking(id);
         
-        await supabase.from('notifications').insert({ 
+        const sysResponse = { 
           id: `SYS-${Date.now()}`, requestId: id, sender: '+622220454042', 
           content: `✅ Perintah ${cmd} untuk ${id} diproses.`, timestamp: Date.now(), isSystem: true 
-        });
+        };
+        await supabase.from('notifications').insert(sysResponse);
+        setNotifications(prev => [sysResponse, ...prev]);
       }
     } catch (err: any) {
       console.error("Chat Error:", err);
