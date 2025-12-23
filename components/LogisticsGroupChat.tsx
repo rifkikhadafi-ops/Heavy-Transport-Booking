@@ -36,7 +36,7 @@ const LogisticsGroupChat: React.FC<LogisticsGroupChatProps> = ({ notifications, 
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-sm md:text-base truncate tracking-tight">Model Angber</h3>
-          <p className="text-[10px] opacity-80 truncate">Online: +622220454042, Admin, User...</p>
+          <p className="text-[10px] opacity-80 truncate">Online: +6282220454042, Admin, User...</p>
         </div>
         <div className="flex space-x-4 text-lg">
           <i className="fa-solid fa-video opacity-60"></i>
@@ -62,7 +62,7 @@ const LogisticsGroupChat: React.FC<LogisticsGroupChatProps> = ({ notifications, 
               msg.isSystem ? 'bg-white rounded-tl-none' : 'bg-[#dcf8c6] rounded-tr-none'
             }`}>
               {msg.isSystem && (
-                <p className="text-[10px] font-black text-emerald-600 mb-0.5">+62 222-0454-042</p>
+                <p className="text-[10px] font-black text-emerald-600 mb-0.5">+62 822-2045-4042</p>
               )}
               <div className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
                 {msg.content}

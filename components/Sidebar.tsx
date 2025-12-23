@@ -45,7 +45,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
         <div className="p-6">
           <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
             <p className="text-xs text-slate-500 mb-1">Registered System</p>
-            <p className="text-sm font-semibold truncate">+622220454042</p>
+            <p className="text-sm font-semibold truncate">+6282220454042</p>
           </div>
         </div>
       </aside>
