@@ -22,6 +22,32 @@ const App: React.FC = () => {
   const [tempKey, setTempKey] = useState(localStorage.getItem('SCM_SUPABASE_KEY') || '');
   const [isTesting, setIsTesting] = useState(false);
 
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const { data: bData, error: bError } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('requestedAt', { ascending: false });
+      
+      const { data: nData, error: nError } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('timestamp', { ascending: false });
+
+      if (bError) throw bError;
+      if (nError) throw nError;
+
+      if (bData) setBookings(bData);
+      if (nData) setNotifications(nData);
+    } catch (err: any) {
+      console.error("Fetch Error:", err);
+      setErrorMessage(`Gagal mengambil data: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isConfigured) {
       setConnectionStatus('error');
@@ -42,49 +68,25 @@ const App: React.FC = () => {
       }
     };
 
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const { data: bData } = await supabase
-          .from('bookings')
-          .select('*')
-          .order('requestedAt', { ascending: false });
-        
-        const { data: nData } = await supabase
-          .from('notifications')
-          .select('*')
-          .order('timestamp', { ascending: false });
-
-        if (bData) setBookings(bData);
-        if (nData) setNotifications(nData);
-      } catch (err) {
-        console.error("Fetch Error:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     initConnection();
 
     const bookingsSub = supabase
-      .channel('bookings-realtime')
+      .channel('bookings-all')
       .on('postgres_changes', { event: '*', table: 'bookings' }, (payload: any) => {
-        if (payload.eventType === 'INSERT' && payload.new) {
-          setBookings(prev => prev.find(b => b.id === payload.new.id) ? prev : [payload.new as BookingRequest, ...prev]);
-        } else if (payload.eventType === 'UPDATE' && payload.new) {
+        if (payload.eventType === 'INSERT') {
+          setBookings(prev => [payload.new as BookingRequest, ...prev]);
+        } else if (payload.eventType === 'UPDATE') {
           setBookings(prev => prev.map(b => b.id === payload.new.id ? payload.new as BookingRequest : b));
-        } else if (payload.eventType === 'DELETE' && payload.old) {
+        } else if (payload.eventType === 'DELETE') {
           setBookings(prev => prev.filter(b => b.id !== payload.old.id));
         }
       })
       .subscribe();
 
     const notificationsSub = supabase
-      .channel('notifications-realtime')
+      .channel('notifications-all')
       .on('postgres_changes', { event: 'INSERT', table: 'notifications' }, (payload: any) => {
-        if (payload.new) {
-          setNotifications(prev => prev.find(n => n.id === payload.new.id) ? prev : [payload.new as WhatsAppNotification, ...prev]);
-        }
+        setNotifications(prev => [payload.new as WhatsAppNotification, ...prev]);
       })
       .subscribe();
 
@@ -98,9 +100,7 @@ const App: React.FC = () => {
     e.preventDefault();
     setIsTesting(true);
     setErrorMessage(null);
-    
     const test = await testConnection(tempUrl, tempKey);
-    
     if (test.success) {
       updateSupabaseClient(tempUrl, tempKey);
       setIsConfigured(true);
@@ -108,6 +108,101 @@ const App: React.FC = () => {
     } else {
       setErrorMessage(test.message);
       setIsTesting(false);
+    }
+  };
+
+  const sendWANotification = async (request: BookingRequest, isUpdate: boolean = false) => {
+    try {
+      const waMessageId = `WA-MSG-${Math.floor(10000 + Math.random() * 90000)}`;
+      const header = isUpdate ? '*[UPDATED]*' : '*[NEW BOOKING]*';
+      const waContent = `${header}\nID: ${request.id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\nDate: ${request.date}\n\nKetik /CLOSE [ID], /PENDING [ID], atau /CANCEL [ID].`;
+      
+      const { error } = await supabase.from('notifications').insert({
+        id: waMessageId, requestId: request.id, sender: '+622220454042',
+        content: waContent, timestamp: Date.now(), isSystem: true
+      });
+      
+      if (error) throw error;
+      return waMessageId;
+    } catch (err: any) {
+      console.error("WA Notification Error:", err);
+      return undefined;
+    }
+  };
+
+  const handleNewRequest = async (newRequest: Omit<BookingRequest, 'id' | 'status' | 'requestedAt' | 'waMessageId'>) => {
+    setErrorMessage(null);
+    try {
+      const id = `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
+      const request: BookingRequest = { ...newRequest, id, status: JobStatus.REQUESTED, requestedAt: Date.now() };
+      
+      const waId = await sendWANotification(request);
+      if (waId) request.waMessageId = waId;
+      
+      const { error } = await supabase.from('bookings').insert(request);
+      if (error) throw error;
+      
+      setActiveTab('dashboard');
+      // Re-fetch to be sure state is synced
+      fetchData();
+    } catch (err: any) {
+      setErrorMessage(`Gagal menyimpan booking: ${err.message}`);
+    }
+  };
+
+  const handleUpdateBooking = async (updatedData: BookingRequest) => {
+    setErrorMessage(null);
+    try {
+      const { error } = await supabase.from('bookings').update(updatedData).eq('id', updatedData.id);
+      if (error) throw error;
+      
+      await sendWANotification(updatedData, true);
+      setActiveTab('dashboard');
+      fetchData();
+    } catch (err: any) {
+      setErrorMessage(`Gagal update booking: ${err.message}`);
+    }
+  };
+
+  const updateStatus = async (id: string, newStatus: JobStatus) => {
+    try {
+      const { error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+    } catch (err: any) {
+      setErrorMessage(`Gagal update status: ${err.message}`);
+    }
+  };
+
+  const handleGroupChatMessage = async (text: string) => {
+    try {
+      const userNotif = { id: `USER-${Date.now()}`, requestId: 'USER-CHAT', sender: 'Operator', content: text, timestamp: Date.now(), isSystem: false };
+      await supabase.from('notifications').insert(userNotif);
+
+      const command = text.toUpperCase();
+      const parts = command.split(' ');
+      const cmd = parts[0];
+      const id = parts[1];
+
+      if (['/CLOSE', '/PENDING', '/CANCEL'].includes(cmd) && id) {
+        const targetBooking = bookings.find(b => b.id === id);
+        if (targetBooking) {
+          if (cmd === '/CLOSE') await updateStatus(id, JobStatus.CLOSE);
+          if (cmd === '/PENDING') await updateStatus(id, JobStatus.PENDING);
+          if (cmd === '/CANCEL') await supabase.from('bookings').delete().eq('id', id);
+          
+          await supabase.from('notifications').insert({ 
+            id: `SYS-${Date.now()}`, requestId: id, sender: '+622220454042', 
+            content: `✅ Perintah ${cmd} untuk ${id} diproses.`, timestamp: Date.now(), isSystem: true 
+          });
+        } else {
+          await supabase.from('notifications').insert({ 
+            id: `SYS-${Date.now()}`, requestId: 'ERROR', sender: '+622220454042', 
+            content: `❌ ID "${id}" tidak ditemukan.`, timestamp: Date.now(), isSystem: true 
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error("Chat Error:", err);
     }
   };
 
@@ -121,60 +216,6 @@ const App: React.FC = () => {
       case 'settings': return 'Database Settings';
       default: return 'Angkutan Berat';
     }
-  };
-
-  const sendWANotification = async (request: BookingRequest, isUpdate: boolean = false) => {
-    const waMessageId = `WA-MSG-${Math.floor(10000 + Math.random() * 90000)}`;
-    const header = isUpdate ? '*[UPDATED]*' : '*[NEW BOOKING]*';
-    const waContent = `${header}\nID: ${request.id}\nUnit: ${request.unit}\nJob: ${request.details}\nTime: ${request.startTime} - ${request.endTime}\nDate: ${request.date}\n\nKetik /CLOSE [ID], /PENDING [ID], atau /CANCEL [ID].`;
-    
-    await supabase.from('notifications').insert({
-      id: waMessageId, requestId: request.id, sender: '+622220454042',
-      content: waContent, timestamp: Date.now(), isSystem: true
-    });
-    return waMessageId;
-  };
-
-  const handleNewRequest = async (newRequest: Omit<BookingRequest, 'id' | 'status' | 'requestedAt' | 'waMessageId'>) => {
-    const id = `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
-    const request: BookingRequest = { ...newRequest, id, status: JobStatus.REQUESTED, requestedAt: Date.now() };
-    const waId = await sendWANotification(request);
-    request.waMessageId = waId;
-    await supabase.from('bookings').insert(request);
-    setActiveTab('dashboard');
-  };
-
-  const handleUpdateBooking = async (updatedData: BookingRequest) => {
-    await supabase.from('bookings').update(updatedData).eq('id', updatedData.id);
-    await sendWANotification(updatedData, true);
-    setActiveTab('dashboard');
-  };
-
-  const updateStatus = async (id: string, newStatus: JobStatus) => {
-    await supabase.from('bookings').update({ status: newStatus }).eq('id', id);
-  };
-
-  const handleGroupChatMessage = async (text: string) => {
-    const userNotif = { id: `USER-${Date.now()}`, requestId: 'USER-CHAT', sender: 'Operator', content: text, timestamp: Date.now(), isSystem: false };
-    await supabase.from('notifications').insert(userNotif);
-
-    const processCommand = async (command: string, action: (id: string) => Promise<void>, emoji: string, feedback: string) => {
-      if (text.toUpperCase().startsWith(command)) {
-        const id = text.split(' ')[1]?.toUpperCase();
-        if (id && bookings.find(b => b.id === id)) {
-          await action(id);
-          await supabase.from('notifications').insert({ id: `SYS-${Date.now()}`, requestId: id, sender: '+622220454042', content: `${emoji} ${feedback} ${id}.`, timestamp: Date.now(), isSystem: true });
-        } else {
-          await supabase.from('notifications').insert({ id: `SYS-${Date.now()}`, requestId: 'ERROR', sender: '+622220454042', content: `❌ ID "${id}" tidak ditemukan.`, timestamp: Date.now(), isSystem: true });
-        }
-        return true;
-      }
-      return false;
-    };
-
-    await processCommand('/CLOSE', (id) => updateStatus(id, JobStatus.CLOSE), '✅', 'Status CLOSED untuk') ||
-    await processCommand('/PENDING', (id) => updateStatus(id, JobStatus.PENDING), '⏳', 'Status PENDING untuk') ||
-    await processCommand('/CANCEL', async (id) => { await supabase.from('bookings').delete().eq('id', id); }, '🗑️', 'Request DIHAPUS untuk');
   };
 
   if (!isConfigured || activeTab === 'settings') {
@@ -277,15 +318,24 @@ const App: React.FC = () => {
               <i className="fa-solid fa-triangle-exclamation"></i>
               <span>{errorMessage}</span>
             </div>
-            <button onClick={() => setActiveTab('settings')} className="text-xs font-black text-rose-600 underline uppercase">Fix Setup</button>
+            <button onClick={() => setErrorMessage(null)} className="text-xs font-black text-rose-600 uppercase">Tutup</button>
           </div>
         )}
 
-        {activeTab === 'dashboard' && <Dashboard bookings={bookings} updateStatus={updateStatus} />}
-        {activeTab === 'request' && <RequestForm onSubmit={handleNewRequest} />}
-        {activeTab === 'change-request' && <ChangeRequestForm bookings={bookings} onUpdate={handleUpdateBooking} />}
-        {activeTab === 'schedule' && <ScheduleView bookings={bookings} />}
-        {activeTab === 'group-chat' && <LogisticsGroupChat notifications={notifications} onSendMessage={handleGroupChatMessage} />}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+            <i className="fa-solid fa-spinner fa-spin text-3xl mb-4"></i>
+            <p className="font-bold text-sm uppercase tracking-widest">Loading Data...</p>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'dashboard' && <Dashboard bookings={bookings} updateStatus={updateStatus} />}
+            {activeTab === 'request' && <RequestForm onSubmit={handleNewRequest} />}
+            {activeTab === 'change-request' && <ChangeRequestForm bookings={bookings} onUpdate={handleUpdateBooking} />}
+            {activeTab === 'schedule' && <ScheduleView bookings={bookings} />}
+            {activeTab === 'group-chat' && <LogisticsGroupChat notifications={notifications} onSendMessage={handleGroupChatMessage} />}
+          </>
+        )}
       </main>
     </div>
   );
