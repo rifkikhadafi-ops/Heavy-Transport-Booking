@@ -5,9 +5,10 @@ import { BookingRequest, JobStatus } from '../types';
 interface DashboardProps {
   bookings: BookingRequest[];
   updateStatus: (id: string, status: JobStatus) => void;
+  deleteBooking: (id: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus }) => {
+const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus, deleteBooking }) => {
   const getStatusColor = (status: JobStatus) => {
     switch (status) {
       case JobStatus.REQUESTED: return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -26,6 +27,14 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus }) => {
       case JobStatus.CLOSE: return <i className="fa-solid fa-circle-check"></i>;
     }
   };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm(`Are you sure you want to delete request ${id}? This action cannot be undone.`)) {
+      deleteBooking(id);
+    }
+  };
+
+  const canDelete = (status: JobStatus) => status !== JobStatus.CLOSE;
 
   return (
     <div className="space-y-6">
@@ -96,15 +105,26 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus }) => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <select 
-                      value={booking.status}
-                      onChange={(e) => updateStatus(booking.id, e.target.value as JobStatus)}
-                      className="text-xs bg-slate-100 border-none rounded-lg p-2 font-semibold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                      {Object.values(JobStatus).map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center justify-end space-x-2">
+                      <select 
+                        value={booking.status}
+                        onChange={(e) => updateStatus(booking.id, e.target.value as JobStatus)}
+                        className="text-xs bg-slate-100 border-none rounded-lg p-2 font-semibold text-slate-600 focus:ring-2 focus:ring-blue-500 outline-none"
+                      >
+                        {Object.values(JobStatus).map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                      {canDelete(booking.status) && (
+                        <button 
+                          onClick={() => handleDelete(booking.id)}
+                          className="h-8 w-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors flex items-center justify-center border border-rose-100"
+                          title="Delete Request"
+                        >
+                          <i className="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -139,7 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus }) => {
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 flex flex-col space-y-2">
                 <select 
                   value={booking.status}
                   onChange={(e) => updateStatus(booking.id, e.target.value as JobStatus)}
@@ -149,6 +169,15 @@ const Dashboard: React.FC<DashboardProps> = ({ bookings, updateStatus }) => {
                     <option key={s} value={s}>Change Status to {s}</option>
                   ))}
                 </select>
+                {canDelete(booking.status) && (
+                  <button 
+                    onClick={() => handleDelete(booking.id)}
+                    className="w-full py-2.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-200 flex items-center justify-center space-x-2 active:bg-rose-100"
+                  >
+                    <i className="fa-solid fa-trash-can"></i>
+                    <span>Delete Request</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}

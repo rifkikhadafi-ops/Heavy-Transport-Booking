@@ -2,8 +2,8 @@
 import React from 'react';
 
 interface SidebarProps {
-  activeTab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat' | 'settings';
-  setActiveTab: (tab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat' | 'settings') => void;
+  activeTab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat';
+  setActiveTab: (tab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat') => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
@@ -12,8 +12,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'request', icon: 'fa-solid fa-plus', label: 'New' },
     { id: 'change-request', icon: 'fa-solid fa-pen-to-square', label: 'Change' },
     { id: 'schedule', icon: 'fa-solid fa-calendar-days', label: 'Schedule' },
-    { id: 'group-chat', icon: 'fa-brands fa-whatsapp', label: 'Group', color: 'bg-emerald-600' },
-    { id: 'settings', icon: 'fa-solid fa-gear', label: 'Setup' }
+    { id: 'group-chat', icon: 'fa-brands fa-whatsapp', label: 'Group', color: 'bg-emerald-600' }
   ];
 
   return (

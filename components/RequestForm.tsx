@@ -32,14 +32,14 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="bg-slate-900 px-6 md:px-8 py-4 md:py-6 text-white text-center md:text-left">
-        <h2 className="text-lg md:text-xl font-bold uppercase tracking-tight">New Booking</h2>
-        <p className="text-slate-400 text-xs mt-1">Provide equipment request details.</p>
+        <h2 className="text-lg md:text-xl font-bold uppercase tracking-tight">Pemesanan Baru</h2>
+        <p className="text-slate-400 text-xs mt-1">Lengkapi detail permintaan unit angkutan berat.</p>
       </div>
       
       <form onSubmit={handleSubmit} className="p-4 md:p-8 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-3">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unit Type</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Jenis Unit</label>
             <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 md:gap-3">
               {Object.values(EquipmentType).map(type => (
                 <button
@@ -60,10 +60,10 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
           </div>
 
           <div className="space-y-5">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Job Schedule</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Jadwal Pekerjaan</label>
             <div className="space-y-5">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Date</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Tanggal</span>
                 <input 
                   type="date" 
                   required
@@ -74,24 +74,28 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Start Time</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Waktu Mulai (00:00 - 24:00)</span>
                   <input 
                     type="time" 
                     required
-                    className="w-full p-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    step="300"
+                    className="w-full p-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold text-slate-700"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
                   />
+                  <p className="text-[9px] text-slate-400 italic font-medium">Contoh: 08:00 atau 22:30</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">End (Est)</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Waktu Selesai (Est)</span>
                   <input 
                     type="time" 
                     required
-                    className="w-full p-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    step="300"
+                    className="w-full p-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold text-slate-700"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
                   />
+                  <p className="text-[9px] text-slate-400 italic font-medium">Format 24 Jam</p>
                 </div>
               </div>
             </div>
@@ -100,7 +104,7 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
 
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Work Details</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Detail Pekerjaan</label>
             <button 
               type="button"
               onClick={handleEnhance}
@@ -108,13 +112,13 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
               className="text-[10px] md:text-xs font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-all disabled:opacity-50 flex items-center space-x-1"
             >
               <i className={`fa-solid ${isEnhancing ? 'fa-spinner fa-spin' : 'fa-wand-sparkles'}`}></i>
-              <span>{isEnhancing ? 'UPDATING...' : 'AI ENHANCE'}</span>
+              <span>{isEnhancing ? 'MENYEMPURNAKAN...' : 'PERBAIKI DENGAN AI'}</span>
             </button>
           </div>
           <textarea 
             required
             rows={4}
-            placeholder="Technical details of the work..."
+            placeholder="Tuliskan detail teknis pekerjaan di sini..."
             className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm leading-relaxed"
             value={details}
             onChange={(e) => setDetails(e.target.value)}
@@ -126,7 +130,7 @@ const RequestForm: React.FC<RequestFormProps> = ({ onSubmit }) => {
             type="submit"
             className="w-full md:w-auto px-10 py-4 bg-blue-600 text-white font-black rounded-xl md:rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center space-x-2"
           >
-            <span>SUBMIT BOOKING</span>
+            <span>KIRIM PERMINTAAN</span>
             <i className="fa-solid fa-paper-plane"></i>
           </button>
         </div>
