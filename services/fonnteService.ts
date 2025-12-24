@@ -1,32 +1,19 @@
 
 /**
- * Fonnte Service
- * Digunakan untuk mengirim pesan WhatsApp melalui API Fonnte
+ * Fonnte Service - Dedicated SCM Transport
+ * Only uses hardcoded credentials to ensure reliability.
  */
 
-const getFonnteConfig = () => {
-  // Prioritas: LocalStorage (User Input) -> Default Hardcoded
-  const storedToken = localStorage.getItem('FONNTE_TOKEN');
-  const storedTarget = localStorage.getItem('FONNTE_TARGET');
-  
-  return {
-    token: (storedToken && storedToken !== 'undefined') ? storedToken.trim() : 'gbEKgb8a9AETB3j7ajST',
-    // Diperbarui ke ID Group yang diberikan: 120363403134308128@g.us
-    target: (storedTarget && storedTarget !== 'undefined') ? storedTarget.trim() : '120363403134308128@g.us'
-  };
+const CONFIG = {
+  token: 'gbEKgb8a9AETB3j7ajST',
+  target: '120363403134308128@g.us'
 };
 
 export const sendWhatsAppMessage = async (message: string): Promise<{ success: boolean; message: string; rawResponse?: any }> => {
-  const { token, target } = getFonnteConfig();
-
-  if (!token || token.length < 5) {
-    return { success: false, message: "Token Fonnte tidak valid atau belum diisi." };
-  }
-
   try {
     const formData = new FormData();
-    formData.append('token', token);
-    formData.append('target', target);
+    formData.append('token', CONFIG.token);
+    formData.append('target', CONFIG.target);
     formData.append('message', message);
     formData.append('countryCode', '62');
 
@@ -59,12 +46,11 @@ export const sendWhatsAppMessage = async (message: string): Promise<{ success: b
   }
 };
 
+// These functions are kept for interface compatibility but no longer modify state
 export const saveFonnteConfig = (token: string, target: string) => {
-  localStorage.setItem('FONNTE_TOKEN', token.trim());
-  localStorage.setItem('FONNTE_TARGET', target.trim());
+  console.log("Configuration is now hardcoded for stability.");
 };
 
 export const resetFonnteConfig = () => {
-  localStorage.removeItem('FONNTE_TOKEN');
-  localStorage.removeItem('FONNTE_TARGET');
+  console.log("Configuration is now hardcoded for stability.");
 };
