@@ -2,8 +2,8 @@
 import React from 'react';
 
 interface SidebarProps {
-  activeTab: 'dashboard' | 'request' | 'change-request' | 'schedule';
-  setActiveTab: (tab: 'dashboard' | 'request' | 'change-request' | 'schedule') => void;
+  activeTab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat';
+  setActiveTab: (tab: 'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat') => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
@@ -11,7 +11,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'dashboard', icon: 'fa-solid fa-chart-column', label: 'Monitor' },
     { id: 'request', icon: 'fa-solid fa-plus-circle', label: 'Create Job' },
     { id: 'change-request', icon: 'fa-solid fa-shuffle', label: 'Modify' },
-    { id: 'schedule', icon: 'fa-solid fa-timeline', label: 'Schedule' }
+    { id: 'schedule', icon: 'fa-solid fa-timeline', label: 'Schedule' },
+    { id: 'group-chat', icon: 'fa-brands fa-whatsapp', label: 'Ops Group', color: 'bg-emerald-600' }
   ];
 
   return (
@@ -36,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
               onClick={() => setActiveTab(item.id as any)}
               className={`w-full flex items-center p-4 rounded-2xl transition-all group ${
                 activeTab === item.id 
-                ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/10' 
+                ? (item.id === 'group-chat' ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-blue-600 shadow-blue-500/10') + ' text-white shadow-xl' 
                 : 'text-slate-500 hover:bg-white/5 hover:text-slate-200'
               }`}
             >
@@ -51,8 +52,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
 
         <div className="p-6">
           <div className="bg-slate-900/50 rounded-2xl p-5 border border-slate-800/50 backdrop-blur-sm text-center">
-            <p className="text-[9px] font-black text-slate-500 mb-1 uppercase tracking-widest">System Version</p>
-            <p className="text-[10px] font-bold text-slate-400">v2.0.0-PRO</p>
+            <p className="text-[9px] font-black text-slate-500 mb-1 uppercase tracking-widest text-center">Connected Device</p>
+            <p className="text-[10px] font-bold text-emerald-500">+6282220454042</p>
           </div>
         </div>
       </aside>
@@ -63,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
             key={item.id}
             onClick={() => setActiveTab(item.id as any)}
             className={`flex flex-col items-center justify-center min-w-[64px] transition-all relative ${
-              activeTab === item.id ? 'text-blue-600' : 'text-slate-400'
+              activeTab === item.id ? (item.id === 'group-chat' ? 'text-emerald-600' : 'text-blue-600') : 'text-slate-400'
             }`}
           >
             <div className={`text-xl mb-1 transition-transform ${activeTab === item.id ? 'scale-110 -translate-y-1' : ''}`}>
@@ -73,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
               {item.label}
             </span>
             {activeTab === item.id && (
-              <div className="absolute -bottom-3 w-1.5 h-1.5 rounded-full bg-blue-600"></div>
+              <div className={`absolute -bottom-3 w-1.5 h-1.5 rounded-full ${item.id === 'group-chat' ? 'bg-emerald-600' : 'bg-blue-600'}`}></div>
             )}
           </button>
         ))}
