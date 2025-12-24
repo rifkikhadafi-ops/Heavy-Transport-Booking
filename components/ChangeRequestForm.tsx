@@ -19,7 +19,6 @@ const ChangeRequestForm: React.FC<ChangeRequestFormProps> = ({ bookings, onUpdat
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [currentBooking, setCurrentBooking] = useState<BookingRequest | null>(null);
 
-  // When a booking is selected, fill the form
   useEffect(() => {
     const booking = bookings.find(b => b.id === selectedId);
     if (booking) {
@@ -78,9 +77,6 @@ const ChangeRequestForm: React.FC<ChangeRequestFormProps> = ({ bookings, onUpdat
             <option key={b.id} value={b.id}>{b.id} | {b.unit} | {b.date}</option>
           ))}
         </select>
-        {bookings.filter(b => b.status !== JobStatus.CLOSE).length === 0 && (
-          <p className="mt-2 text-xs text-rose-500 italic">Tidak ada permintaan aktif yang bisa diubah.</p>
-        )}
       </div>
 
       {currentBooking && (
@@ -91,7 +87,7 @@ const ChangeRequestForm: React.FC<ChangeRequestFormProps> = ({ bookings, onUpdat
               <p className="text-blue-100 text-sm italic">Perbarui informasi dan simpan untuk sinkronisasi.</p>
             </div>
             <div className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase">
-              Status Saat Ini: {currentBooking.status}
+              Status: {currentBooking.status}
             </div>
           </div>
           
@@ -115,36 +111,30 @@ const ChangeRequestForm: React.FC<ChangeRequestFormProps> = ({ bookings, onUpdat
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">Update Jadwal (Format 24 Jam)</label>
+                <label className="text-sm font-semibold text-slate-700">Update Jadwal</label>
                 <div className="space-y-3">
                   <input 
                     type="date" 
                     required
-                    className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-bold text-slate-700"
+                    className="w-full p-3 rounded-xl border border-slate-200 outline-none font-bold text-slate-700"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                   />
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Waktu Mulai</span>
-                      <input 
-                        type="time" 
-                        required
-                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-bold text-slate-700"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Waktu Selesai</span>
-                      <input 
-                        type="time" 
-                        required
-                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-bold text-slate-700"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
-                      />
-                    </div>
+                    <input 
+                      type="time" 
+                      required
+                      className="w-full p-3 rounded-xl border border-slate-200 outline-none text-sm font-bold text-slate-700"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                    />
+                    <input 
+                      type="time" 
+                      required
+                      className="w-full p-3 rounded-xl border border-slate-200 outline-none text-sm font-bold text-slate-700"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>
@@ -157,55 +147,47 @@ const ChangeRequestForm: React.FC<ChangeRequestFormProps> = ({ bookings, onUpdat
                   type="button"
                   onClick={handleEnhance}
                   disabled={isEnhancing || !details}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1 disabled:opacity-50"
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center space-x-1"
                 >
                   <i className={`fa-solid ${isEnhancing ? 'fa-spinner fa-spin' : 'fa-wand-sparkles'}`}></i>
-                  <span>{isEnhancing ? 'Memproses...' : 'AI Perbaiki Deskripsi'}</span>
+                  <span>AI Perbaiki Deskripsi</span>
                 </button>
               </div>
               <textarea 
                 required
                 rows={4}
-                className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm leading-relaxed"
+                className="w-full p-4 rounded-xl border border-slate-200 outline-none text-sm leading-relaxed"
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
               ></textarea>
             </div>
 
             <div className="pt-4 flex flex-col md:flex-row gap-4 md:justify-between items-center">
-              <div className="flex space-x-4 w-full md:w-auto">
+              <div className="flex space-x-4">
                 <button 
                   type="button"
                   onClick={() => setSelectedId('')}
-                  className="text-slate-400 hover:text-slate-600 font-bold transition-all text-sm px-2"
+                  className="text-slate-400 font-bold text-sm px-2"
                 >
                   Batal
                 </button>
                 <button 
                   type="button"
                   onClick={handleDelete}
-                  className="px-6 py-4 border border-rose-200 text-rose-600 font-bold rounded-2xl hover:bg-rose-50 transition-all flex items-center space-x-2 text-sm"
+                  className="px-6 py-4 border border-rose-200 text-rose-600 font-bold rounded-2xl hover:bg-rose-50 text-sm"
                 >
-                  <i className="fa-solid fa-trash-can"></i>
-                  <span>Hapus Pesanan</span>
+                  Hapus Pesanan
                 </button>
               </div>
               <button 
                 type="submit"
-                className="w-full md:w-auto px-10 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center space-x-2"
+                className="w-full md:w-auto px-10 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg flex items-center justify-center space-x-2"
               >
-                <span>Update & Kirim Notif</span>
-                <i className="fa-solid fa-rotate"></i>
+                <span>Simpan Perubahan</span>
+                <i className="fa-solid fa-save"></i>
               </button>
             </div>
           </form>
-        </div>
-      )}
-
-      {!currentBooking && selectedId === '' && (
-        <div className="py-20 text-center text-slate-400">
-          <i className="fa-solid fa-magnifying-glass text-4xl mb-4 opacity-20"></i>
-          <p className="font-medium">Pilih ID Permintaan di atas untuk mulai mengubah data.</p>
         </div>
       )}
     </div>

@@ -1,19 +1,16 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { JobStatus, BookingRequest, WhatsAppNotification } from './types';
+import { JobStatus, BookingRequest } from './types';
 import { supabase, testConnection } from './services/supabaseClient';
-import { sendWhatsAppMessage } from './services/fonnteService';
 import Sidebar from './components/Sidebar';
 import RequestForm from './components/RequestForm';
 import ChangeRequestForm from './components/ChangeRequestForm';
 import Dashboard from './components/Dashboard';
 import ScheduleView from './components/ScheduleView';
-import LogisticsGroupChat from './components/LogisticsGroupChat';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'request' | 'change-request' | 'schedule' | 'group-chat'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'request' | 'change-request' | 'schedule'>('dashboard');
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
-  const [notifications, setNotifications] = useState<WhatsAppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'checking'>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -27,15 +24,7 @@ const App: React.FC = () => {
       
       if (bError) throw bError;
 
-      const { data: nData, error: nError } = await supabase
-        .from('notifications')
-        .select('*')
-        .order('timestamp', { ascending: false });
-
-      if (nError) throw nError;
-
       if (bData) setBookings(bData);
-      if (nData) setNotifications(nData);
       setConnectionStatus('connected');
     } catch (err: any) {
       console.error("Fetch Error:", err);
@@ -77,15 +66,6 @@ const App: React.FC = () => {
           setBookings(prev => prev.filter(b => b.id !== deletedId));
         }
       })
-      .on('postgres_changes', { event: '*', table: 'notifications' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          const newNotif = payload.new as WhatsAppNotification;
-          setNotifications(prev => prev.some(n => n.id === newNotif.id) ? prev : [newNotif, ...prev]);
-        }
-        else if (payload.eventType === 'DELETE') {
-          setNotifications(prev => prev.filter(n => n.id !== payload.old.id));
-        }
-      })
       .subscribe();
 
     return () => {
@@ -111,7 +91,7 @@ const App: React.FC = () => {
     return `REQ-${String(nextNum).padStart(5, '0')}`;
   };
 
-  const handleNewRequest = async (newRequest: Omit<BookingRequest, 'id' | 'status' | 'requestedAt' | 'waMessageId'>) => {
+  const handleNewRequest = async (newRequest: Omit<BookingRequest, 'id' | 'status' | 'requestedAt'>) => {
     setErrorMessage(null);
     try {
       const id = generateNextId();
@@ -125,22 +105,6 @@ const App: React.FC = () => {
       const { error: bError } = await supabase.from('bookings').insert(request);
       if (bError) throw bError;
 
-      const waContent = `🚛 *PEMESANAN BARU*\n\n*ID:* ${id}\n*Unit:* ${request.unit}\n*Pekerjaan:* ${request.details}\n*Waktu:* ${request.startTime} - ${request.endTime}\n*Tanggal:* ${request.date}\n\n_Ketik */CLOSE ${id}* untuk menutup pekerjaan._`;
-      
-      const fonnteRes = await sendWhatsAppMessage(waContent);
-      
-      const newNotif = {
-        id: `WA-${Date.now()}`, requestId: id, sender: '+6282220454042',
-        content: waContent + (fonnteRes.success ? "" : "\n\n(⚠️ Gagal kirim WA: " + fonnteRes.message + ")"),
-        timestamp: Date.now(), isSystem: true
-      };
-
-      await supabase.from('notifications').insert(newNotif);
-      
-      if (!fonnteRes.success) {
-        setErrorMessage(`⚠️ Pesanan tersimpan, tapi WA gagal: ${fonnteRes.message}`);
-      }
-
       setActiveTab('dashboard');
     } catch (err: any) {
       setErrorMessage(`Gagal menyimpan: ${err.message}`);
@@ -151,10 +115,6 @@ const App: React.FC = () => {
     try {
       const { error } = await supabase.from('bookings').update(updatedData).eq('id', updatedData.id);
       if (error) throw error;
-      
-      const updateMsg = `🔄 *UPDATE BOOKING*\n\n*ID:* ${updatedData.id}\n*Status:* ${updatedData.status}\n*Unit:* ${updatedData.unit}\n*Jadwal:* ${updatedData.date} (${updatedData.startTime}-${updatedData.endTime})`;
-      await sendWhatsAppMessage(updateMsg);
-
       setActiveTab('dashboard');
     } catch (err: any) {
       setErrorMessage(`Gagal update: ${err.message}`);
@@ -165,7 +125,6 @@ const App: React.FC = () => {
     try {
       const { error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', id);
       if (error) throw error;
-      await sendWhatsAppMessage(`✅ *STATUS UPDATE*\n\nID *${id}* kini berstatus: *${newStatus.toUpperCase()}*`);
     } catch (err: any) {
       setErrorMessage(`Gagal update status: ${err.message}`);
     }
@@ -174,28 +133,8 @@ const App: React.FC = () => {
   const deleteBooking = async (id: string) => {
     try {
       await supabase.from('bookings').delete().eq('id', id);
-      await supabase.from('notifications').delete().eq('requestId', id);
-      await sendWhatsAppMessage(`🗑️ *CANCELLED*\n\nBooking ID *${id}* telah dihapus dari sistem.`);
     } catch (err: any) {
       setErrorMessage(`Gagal menghapus: ${err.message}`);
-    }
-  };
-
-  const handleGroupChatMessage = async (text: string) => {
-    try {
-      const userNotif = { 
-        id: `USER-${Date.now()}`, requestId: 'USER-CHAT', sender: 'Operator', 
-        content: text, timestamp: Date.now(), isSystem: false 
-      };
-      await supabase.from('notifications').insert(userNotif);
-
-      const commandText = text.toUpperCase();
-      const parts = commandText.split(' ');
-      if (parts[0] === '/CLOSE' && parts[1]) {
-        await updateStatus(parts[1], JobStatus.CLOSE);
-      }
-    } catch (err: any) {
-      console.error("Chat Error:", err);
     }
   };
 
@@ -209,24 +148,19 @@ const App: React.FC = () => {
             <h1 className="text-xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase">
               {activeTab === 'dashboard' ? 'OPERATIONAL BOARD' : 
                activeTab === 'request' ? 'NEW RESERVATION' :
-               activeTab === 'change-request' ? 'MODIFY DATA' :
-               activeTab === 'schedule' ? 'LIVE TIMELINE' : 'LOGISTICS GROUP'}
+               activeTab === 'change-request' ? 'MODIFY DATA' : 'LIVE TIMELINE'}
             </h1>
             <div className="flex items-center space-x-2 mt-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">SCM Heavy Transport • Realtime Monitoring</p>
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">SCM Heavy Transport • Internal Management</p>
             </div>
           </div>
           <div className="flex space-x-2">
-            <div className="flex items-center space-x-2 text-[10px] px-4 py-2.5 rounded-xl font-black shadow-sm border bg-white text-emerald-600 border-emerald-100">
-              <i className="fa-brands fa-whatsapp text-sm"></i>
-              <span>WHATSAPP READY</span>
-            </div>
             <div className={`flex items-center space-x-2 text-[10px] px-4 py-2.5 rounded-xl font-black shadow-sm border ${
               connectionStatus === 'connected' ? 'bg-white text-blue-600 border-blue-100' : 'bg-white text-rose-600 border-rose-100'
             }`}>
               <i className={`fa-solid ${connectionStatus === 'connected' ? 'fa-cloud-check' : 'fa-circle-exclamation'}`}></i>
-              <span>DATABASE: {connectionStatus === 'connected' ? 'SYNC' : 'ERROR'}</span>
+              <span>DATABASE: {connectionStatus === 'connected' ? 'CONNECTED' : 'OFFLINE'}</span>
             </div>
           </div>
         </header>
@@ -255,7 +189,6 @@ const App: React.FC = () => {
             {activeTab === 'request' && <RequestForm onSubmit={handleNewRequest} />}
             {activeTab === 'change-request' && <ChangeRequestForm bookings={bookings} onUpdate={handleUpdateBooking} onDelete={deleteBooking} />}
             {activeTab === 'schedule' && <ScheduleView bookings={bookings} />}
-            {activeTab === 'group-chat' && <LogisticsGroupChat notifications={notifications} onSendMessage={handleGroupChatMessage} />}
           </div>
         )}
       </main>

@@ -23,13 +23,14 @@ export interface BookingRequest {
   endTime: string;
   status: JobStatus;
   requestedAt: number;
+  // Field added to match Omit requirements in RequestForm.tsx
   waMessageId?: string;
 }
 
+// Interface for WhatsApp notifications used by WAWebHookSimulator and LogisticsGroupChat components
 export interface WhatsAppNotification {
   id: string;
   requestId: string;
-  sender: string;
   content: string;
   timestamp: number;
   isSystem: boolean;
