@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { JobStatus, BookingRequest, WhatsAppNotification } from './types';
 import { supabase, testConnection } from './services/supabaseClient';
@@ -17,10 +18,10 @@ const App: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error' | 'checking'>('checking');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Fonnte State - Diperbarui Target ke nomor test sesuai request
+  // Fonnte State - Diperbarui sesuai data user terbaru
   const [showFonnteSettings, setShowFonnteSettings] = useState(false);
   const [fonnteToken, setFonnteToken] = useState(localStorage.getItem('FONNTE_TOKEN') || 'gbEKgb8a9AETB3j7ajST');
-  const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || '085158950003');
+  const [fonnteTarget, setFonnteTarget] = useState(localStorage.getItem('FONNTE_TARGET') || '120363403134308128@g.us');
   const [isTestingFonnte, setIsTestingFonnte] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean, message: string} | null>(null);
 
@@ -215,7 +216,7 @@ const App: React.FC = () => {
     if (window.confirm("Ingin mengembalikan Token & Target ke pengaturan awal?")) {
       resetFonnteConfig();
       setFonnteToken('gbEKgb8a9AETB3j7ajST');
-      setFonnteTarget('085158950003');
+      setFonnteTarget('120363403134308128@g.us');
       setTestResult({ success: true, message: "Pengaturan telah di-reset ke default." });
     }
   };
@@ -225,7 +226,7 @@ const App: React.FC = () => {
     setTestResult(null);
     saveFonnteConfig(fonnteToken, fonnteTarget);
     
-    const res = await sendWhatsAppMessage("🧪 *TES KONEKSI SCM*\nSistem Transportasi Berat berhasil terhubung dengan WhatsApp Anda!");
+    const res = await sendWhatsAppMessage("🧪 *TES KONEKSI SCM*\nSistem Transportasi Berat berhasil terhubung dengan Grup WhatsApp Anda!");
     setTestResult(res);
     setIsTestingFonnte(false);
   };
@@ -236,7 +237,7 @@ const App: React.FC = () => {
       
       <button 
         onClick={() => setShowFonnteSettings(true)}
-        className="fixed top-4 right-4 z-50 h-10 w-10 bg-white shadow-lg rounded-full flex items-center justify-center text-slate-600 hover:text-emerald-600 border border-slate-200"
+        className="fixed top-4 right-4 z-50 h-10 w-10 bg-white shadow-lg rounded-full flex items-center justify-center text-slate-600 hover:text-emerald-600 border border-slate-200 transition-transform hover:scale-110"
         title="Fonnte Settings"
       >
         <i className="fa-solid fa-gears"></i>
@@ -248,11 +249,11 @@ const App: React.FC = () => {
             <div className="flex justify-between items-start mb-6">
               <h2 className="text-xl font-black text-slate-800 flex items-center space-x-3">
                 <i className="fa-brands fa-whatsapp text-emerald-500 text-2xl"></i>
-                <span>SETTING FONNTE</span>
+                <span>SETTING WHATSAPP</span>
               </h2>
               <button 
                 onClick={handleResetFonnte}
-                className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-widest bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100"
+                className="text-[10px] font-black text-rose-500 hover:text-white hover:bg-rose-500 uppercase tracking-widest px-3 py-1.5 rounded-lg border border-rose-100 transition-colors"
               >
                 Reset Default
               </button>
@@ -260,7 +261,7 @@ const App: React.FC = () => {
 
             <div className="space-y-5">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Device Token (gbEKgb8a9...)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Device Token (Fonnte)</label>
                 <input 
                   type="text"
                   value={fonnteToken}
@@ -270,14 +271,15 @@ const App: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Target Test (08515895...)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Target (Group ID atau Nomor)</label>
                 <input 
                   type="text" 
                   value={fonnteTarget}
                   onChange={(e) => setFonnteTarget(e.target.value)}
-                  placeholder="e.g. 085158950003 atau ID Group"
+                  placeholder="e.g. 123456789@g.us atau 08xxx"
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                 />
+                <p className="text-[9px] text-slate-400 mt-1.5 px-1 italic">Gunakan format <b>@g.us</b> untuk Group WhatsApp.</p>
               </div>
 
               {testResult && (
@@ -294,7 +296,7 @@ const App: React.FC = () => {
                   className="w-full py-4 bg-slate-100 text-slate-700 rounded-2xl font-black text-xs uppercase tracking-widest border border-slate-200 hover:bg-slate-200 disabled:opacity-50"
                 >
                   {isTestingFonnte ? <i className="fa-solid fa-spinner fa-spin mr-2"></i> : <i className="fa-solid fa-paper-plane mr-2"></i>}
-                  Tes Kirim WhatsApp
+                  Tes Kirim Notifikasi
                 </button>
                 <div className="flex space-x-3">
                   <button onClick={() => { setShowFonnteSettings(false); setTestResult(null); }} className="flex-1 py-4 text-slate-500 font-bold text-sm">Tutup</button>
@@ -307,43 +309,52 @@ const App: React.FC = () => {
       )}
 
       <main className="flex-1 p-4 md:p-8 overflow-y-auto pb-24 md:pb-8">
-        <header className="mb-6 md:mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <header className="mb-6 md:mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-slate-200 pb-6">
           <div>
-            <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">
+            <h1 className="text-xl md:text-3xl font-black text-slate-900 tracking-tighter uppercase">
               {activeTab === 'dashboard' ? 'OPERATIONAL BOARD' : 
                activeTab === 'request' ? 'NEW RESERVATION' :
                activeTab === 'change-request' ? 'MODIFY DATA' :
-               activeTab === 'schedule' ? 'LIVE TIMELINE' : 'WHATSAPP GROUP'}
+               activeTab === 'schedule' ? 'LIVE TIMELINE' : 'LOGISTICS GROUP'}
             </h1>
-            <p className="text-slate-500 text-xs font-medium">SCM Heavy Transport Management System</p>
+            <div className="flex items-center space-x-2 mt-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">SCM Heavy Transport • Realtime Monitoring</p>
+            </div>
           </div>
           <div className="flex space-x-2">
-            <div className={`flex items-center space-x-2 text-[10px] px-4 py-2 rounded-full font-bold shadow-sm ${
-              fonnteToken ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'
+            <div className={`flex items-center space-x-2 text-[10px] px-4 py-2.5 rounded-xl font-black shadow-sm border ${
+              fonnteToken ? 'bg-white text-emerald-600 border-emerald-100' : 'bg-slate-100 text-slate-400 border-slate-200'
             }`}>
-              <i className="fa-brands fa-whatsapp"></i>
-              <span>WA: {fonnteToken ? 'ACTIVE' : 'OFFLINE'}</span>
+              <i className="fa-brands fa-whatsapp text-sm"></i>
+              <span>{fonnteToken ? 'WHATSAPP ACTIVE' : 'WHATSAPP OFFLINE'}</span>
             </div>
-            <div className={`flex items-center space-x-2 text-[10px] px-4 py-2 rounded-full font-bold shadow-sm ${
-              connectionStatus === 'connected' ? 'bg-blue-600 text-white' : 'bg-rose-600 text-white'
+            <div className={`flex items-center space-x-2 text-[10px] px-4 py-2.5 rounded-xl font-black shadow-sm border ${
+              connectionStatus === 'connected' ? 'bg-white text-blue-600 border-blue-100' : 'bg-white text-rose-600 border-rose-100'
             }`}>
-              <i className={`fa-solid ${connectionStatus === 'connected' ? 'fa-bolt' : 'fa-circle-exclamation'}`}></i>
-              <span>DB: {connectionStatus === 'connected' ? 'SYNC' : 'ERROR'}</span>
+              <i className={`fa-solid ${connectionStatus === 'connected' ? 'fa-cloud-check' : 'fa-circle-exclamation'}`}></i>
+              <span>DATABASE: {connectionStatus === 'connected' ? 'SYNC' : 'ERROR'}</span>
             </div>
           </div>
         </header>
 
         {errorMessage && (
-          <div className="mb-6 bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-center justify-between text-rose-700 text-xs font-bold uppercase">
-            <span>{errorMessage}</span>
-            <button onClick={() => fetchData()} className="text-blue-600 underline ml-4 hover:no-underline">Retry</button>
+          <div className="mb-6 bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-center justify-between text-rose-700 text-xs font-bold uppercase animate-in slide-in-from-top-2">
+            <div className="flex items-center space-x-3">
+              <i className="fa-solid fa-triangle-exclamation text-lg"></i>
+              <span>{errorMessage}</span>
+            </div>
+            <button onClick={() => fetchData()} className="text-blue-600 underline ml-4 hover:no-underline px-4 py-2 bg-white rounded-lg border border-blue-100">RETRY SYNC</button>
           </div>
         )}
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-            <i className="fa-solid fa-spinner fa-spin text-3xl mb-4"></i>
-            <p className="font-bold text-xs uppercase tracking-widest">Sinkronisasi Data...</p>
+          <div className="flex flex-col items-center justify-center py-32 text-slate-400">
+            <div className="relative">
+              <i className="fa-solid fa-truck-ramp-box text-5xl mb-6 text-slate-200"></i>
+              <i className="fa-solid fa-spinner fa-spin absolute -bottom-2 -right-2 text-blue-500 text-xl"></i>
+            </div>
+            <p className="font-black text-[10px] uppercase tracking-[0.2em]">Mengunduh Data Operasional...</p>
           </div>
         ) : (
           <div className="animate-in fade-in duration-500">

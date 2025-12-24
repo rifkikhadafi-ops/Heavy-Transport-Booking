@@ -1,3 +1,4 @@
+
 /**
  * Fonnte Service
  * Digunakan untuk mengirim pesan WhatsApp melalui API Fonnte
@@ -10,8 +11,8 @@ const getFonnteConfig = () => {
   
   return {
     token: (storedToken && storedToken !== 'undefined') ? storedToken.trim() : 'gbEKgb8a9AETB3j7ajST',
-    // Diperbarui ke nomor test yang diminta user
-    target: (storedTarget && storedTarget !== 'undefined') ? storedTarget.trim() : '085158950003'
+    // Diperbarui ke ID Group yang diberikan: 120363403134308128@g.us
+    target: (storedTarget && storedTarget !== 'undefined') ? storedTarget.trim() : '120363403134308128@g.us'
   };
 };
 
